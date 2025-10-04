@@ -59,9 +59,9 @@ const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "../../")));
 
 // --- API Routes ---
-// app.use("/api/users", userRoutes);       // User signup/login
-// app.use("/api/staff", staffRoutes);      // Staff registration/login
-// app.use("/api/admin", adminRoutes);      // Admin login
+app.use("/api/users", userRoutes);       // User signup/login
+app.use("/api/staff", staffRoutes);      // Staff registration/login
+app.use("/api/admin", adminRoutes);      // Admin login
 app.use("/api/otp", otpRoutes);          // OTP request/verification
 app.use("/api/notifications", notificationRoutes); // Notification management
 app.use("/api/chat", chatRoutes);        // Chat/messaging functionality
