@@ -2,30 +2,33 @@ import User from "../models/User.models.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-//signup ke liye
-export const userSignup=async(req,res)=>{
-    try{
-        const{name,email,password,phone,street,city,state,pincode}=req.body;
+export const userSignup = async(req, res) => {
+    try {
+        const { name, email, password, phone, street, city, state, pincode } = req.body;
 
-        if(!name || !email || !password || !phone){
-            return res.status(400).json({ message: "Please fill all required fields: name, email, password, phone." });
+        if (!name || !email || !password || !phone) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Please fill all required fields: name, email, password, phone." 
+            });
         }
 
-        //Check if user already exists
-        const existingUser=await User.findOne({email});
-        if(existingUser){
-            return res.status(400).json({message:"Email already registered"});
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Email already registered" 
+            });
         }
 
-        //Hash Password
-        const hashedPassword=await bcrypt.hash(password,10);
-        //create newUser
-        const newUser=new User({
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const newUser = new User({
             name,
             email,
-            password:hashedPassword,
+            password: hashedPassword,
             phone,
-            address:{
+            address: {
                 street,
                 city,
                 state,
@@ -35,67 +38,116 @@ export const userSignup=async(req,res)=>{
 
         await newUser.save();
 
-        res.status(201).json({message:"User registered successfully"});
-    }
-    catch(err){
-        console.error("User Signup Error: ",err);
+        // Generate tokens immediately after signup
+        const payload = { id: newUser._id, role: newUser.role || "user" };
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+        const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        res.status(201).json({ 
+            success: true,
+            message: "User registered successfully",
+            data: {
+                accessToken,
+                user: {
+                    id: newUser._id,
+                    name: newUser.name,
+                    email: newUser.email,
+                    phone: newUser.phone,
+                    role: newUser.role
+                }
+            }
+        });
+    } catch (err) {
+        console.error("User Signup Error: ", err);
         if (err.name === 'ValidationError') {
-             return res.status(400).json({ message: err.message || "Validation failed for one or more fields." });
+            return res.status(400).json({ 
+                success: false,
+                message: err.message || "Validation failed for one or more fields." 
+            });
         }
-        res.status(500).json({message:"Server Error"});
+        res.status(500).json({ 
+            success: false,
+            message: "Server Error" 
+        });
     }
 };
 
-//Login controller
+// FIXED: Accept 'identifier' instead of 'email'
+export const userLogin = async(req, res) => {
+    try {
+        // Frontend sends 'identifier' and 'password'
+        const { identifier, password } = req.body;
+        
+        console.log('[USER LOGIN] Received:', { identifier, password: '***' });
 
-export const userLogin=async(req,res)=>{
-    try{
-        const{email,password}=req.body;
-        //Find user by email or phone
-        const user=await User.findOne({
-            $or:[{email:email},{phone:email}],
-        });
-
-        if(!user){
-            return res.status(404).json({
-                message:"User not found"
+        if (!identifier || !password) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Please provide identifier and password" 
             });
         }
 
-        //Compare password
-        const isMatch=await bcrypt.compare(password,user.password);
-        if(!isMatch){
-            return res.status(400).json({message:"Invalid Credentials"});
+        // Find user by email or phone
+        const user = await User.findOne({
+            $or: [{ email: identifier }, { phone: identifier }],
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
         }
-        //Generate JWT
-        const payload={id:user._id,role:user.role || "user"};
 
-        const accessToken=jwt.sign(payload,process.env.ACCESS_TOKEN_SECRET,{expiresIn:"15m"});
-        const refreshToken=jwt.sign(payload,process.env.REFRESH_TOKEN_SECRET,{expiresIn:"7d"});
+        // Compare password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Invalid Credentials" 
+            });
+        }
 
-        //Send refresh token as HttpOnly cookie
-        res.cookie("refreshToken",refreshToken,{
-            httpOnly:true,
-            secure:process.env.NODE_ENV==="production",
-            sameSite:"strict",
-            maxAge:7*24*60*60*1000, 
+        // Generate JWT
+        const payload = { id: user._id, role: user.role || "user" };
+        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+        const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+
+        // Send refresh token as HttpOnly cookie
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         res.status(200).json({
-            message:"Login Successful",
-            accessToken,
-            user:{
-                id:user._id,
-                name:user.name,
-                email:user.email,
-                phone:user.phone,
-                address:user.address,
-                role:user.role,
-            },
+            success: true,
+            message: "Login Successful",
+            data: {
+                accessToken,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    phone: user.phone,
+                    address: user.address,
+                    role: user.role,
+                }
+            }
         });
-    }
-    catch(err){
-        console.error("User login error: ",err);
-        res.status(500).json({message:"Server Error"});
+    } catch (err) {
+        console.error("User login error: ", err);
+        res.status(500).json({ 
+            success: false,
+            message: "Server Error" 
+        });
     }
 };

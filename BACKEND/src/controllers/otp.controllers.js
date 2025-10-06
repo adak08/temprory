@@ -189,15 +189,35 @@ export const userSignupWithOTP = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All required fields must be filled");
     }
 
-    // Verify OTP first
+    // Verify OTP: allow inline verification if `otp` is provided, otherwise require a prior verified OTP
     const otpRecord = await OTP.findOne({
         identifier: email,
         purpose: 'signup',
-        verified: true,
         expiresAt: { $gt: new Date() }
     });
 
     if (!otpRecord) {
+        throw new ApiError(400, "Please verify OTP first or OTP has expired");
+    }
+
+    if (otp) {
+        // check attempt limit
+        if (otpRecord.attempts >= 5) {
+            await OTP.deleteOne({ _id: otpRecord._id });
+            throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+        }
+
+        const isValid = await bcrypt.compare(otp, otpRecord.otp);
+        if (!isValid) {
+            otpRecord.attempts += 1;
+            await otpRecord.save();
+            throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+        }
+
+        // mark verified
+        otpRecord.verified = true;
+        await otpRecord.save();
+    } else if (!otpRecord.verified) {
         throw new ApiError(400, "Please verify OTP first or OTP has expired");
     }
 
@@ -257,15 +277,33 @@ export const userLoginWithOTP = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Identifier and OTP are required");
     }
 
-    // Verify OTP
+    // Verify OTP: allow inline verification if `otp` is provided, otherwise require a prior verified OTP
     const otpRecord = await OTP.findOne({
         identifier,
         purpose: 'login',
-        verified: true,
         expiresAt: { $gt: new Date() }
     });
 
     if (!otpRecord) {
+        throw new ApiError(400, "Please verify OTP first or OTP has expired");
+    }
+
+    if (otp) {
+        if (otpRecord.attempts >= 5) {
+            await OTP.deleteOne({ _id: otpRecord._id });
+            throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+        }
+
+        const isValid = await bcrypt.compare(otp, otpRecord.otp);
+        if (!isValid) {
+            otpRecord.attempts += 1;
+            await otpRecord.save();
+            throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+        }
+
+        otpRecord.verified = true;
+        await otpRecord.save();
+    } else if (!otpRecord.verified) {
         throw new ApiError(400, "Please verify OTP first or OTP has expired");
     }
 
@@ -318,11 +356,29 @@ export const staffLoginWithOTP = asyncHandler(async (req, res) => {
     const otpRecord = await OTP.findOne({
         identifier,
         purpose: 'login',
-        verified: true,
         expiresAt: { $gt: new Date() }
     });
 
     if (!otpRecord) {
+        throw new ApiError(400, "Please verify OTP first or OTP has expired");
+    }
+
+    if (otp) {
+        if (otpRecord.attempts >= 5) {
+            await OTP.deleteOne({ _id: otpRecord._id });
+            throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+        }
+
+        const isValid = await bcrypt.compare(otp, otpRecord.otp);
+        if (!isValid) {
+            otpRecord.attempts += 1;
+            await otpRecord.save();
+            throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+        }
+
+        otpRecord.verified = true;
+        await otpRecord.save();
+    } else if (!otpRecord.verified) {
         throw new ApiError(400, "Please verify OTP first or OTP has expired");
     }
 
@@ -371,11 +427,29 @@ export const adminLoginWithOTP = asyncHandler(async (req, res) => {
     const otpRecord = await OTP.findOne({
         identifier,
         purpose: 'login',
-        verified: true,
         expiresAt: { $gt: new Date() }
     });
 
     if (!otpRecord) {
+        throw new ApiError(400, "Please verify OTP first or OTP has expired");
+    }
+
+    if (otp) {
+        if (otpRecord.attempts >= 5) {
+            await OTP.deleteOne({ _id: otpRecord._id });
+            throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+        }
+
+        const isValid = await bcrypt.compare(otp, otpRecord.otp);
+        if (!isValid) {
+            otpRecord.attempts += 1;
+            await otpRecord.save();
+            throw new ApiError(400, `Invalid OTP. ${5 - otpRecord.attempts} attempts remaining.`);
+        }
+
+        otpRecord.verified = true;
+        await otpRecord.save();
+    } else if (!otpRecord.verified) {
         throw new ApiError(400, "Please verify OTP first or OTP has expired");
     }
 

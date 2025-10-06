@@ -1,526 +1,824 @@
-// DEFINE THE BASE URL FOR YOUR BACKEND HERE (CRITICAL FIX)
-const BASE_URL = "http://localhost:3000";
+// --- API Base URL ---
+const API_BASE_URL = 'http://localhost:3000/api';
 
-// Navbar scroll effect
-window.addEventListener("scroll", function () {
-    const navbar = document.getElementById("navbar");
-    if (window.scrollY > 50) {
-        navbar.classList.add("nav-scrolled");
-    } else {
-        navbar.classList.remove("nav-scrolled");
+// --- API Service Functions ---
+const apiService = {
+    // User APIs
+    async userSignUp(userData) {
+        const response = await fetch(`${API_BASE_URL}/users/signup`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData)
+        });
+        return await response.json();
+    },
+
+    async userSignIn(credentials) {
+        const response = await fetch(`${API_BASE_URL}/users/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentials)
+        });
+        return await response.json();
+    },
+
+    // Staff APIs
+    async staffSignUp(staffData) {
+        const response = await fetch(`${API_BASE_URL}/staff/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(staffData)
+        });
+        return await response.json();
+    },
+
+    async staffSignIn(credentials) {
+        const response = await fetch(`${API_BASE_URL}/staff/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentials)
+        });
+        return await response.json();
+    },
+
+    // Admin APIs
+    async adminSignIn(credentials) {
+        const response = await fetch(`${API_BASE_URL}/admin/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentials)
+        });
+        return await response.json();
+    },
+
+    // OTP APIs
+    async sendOTP(identifier, role, purpose = 'signup') {
+        console.log(`Sending OTP request: identifier=${identifier}, role=${role}, purpose=${purpose}`);
+        const response = await fetch(`${API_BASE_URL}/otp/request`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                identifier, 
+                userType: role,
+                purpose: purpose,
+                type: identifier.includes('@') ? 'email' : 'phone'
+            })
+        });
+        const result = await response.json();
+        console.log('OTP Response:', result);
+        return result;
+    },
+
+    async verifyOTP(identifier, otp, role, purpose = 'signup') {
+        console.log(`Verifying OTP: identifier=${identifier}, role=${role}, purpose=${purpose}`);
+        const response = await fetch(`${API_BASE_URL}/otp/verify`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                identifier, 
+                otp,
+                purpose: purpose
+            })
+        });
+        const result = await response.json();
+        console.log('Verify OTP Response:', result);
+        return result;
+    },
+
+    async resendOTP(identifier, role, purpose = 'signup') {
+        console.log(`Resending OTP: identifier=${identifier}, role=${role}, purpose=${purpose}`);
+        const response = await fetch(`${API_BASE_URL}/otp/resend`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                identifier,
+                purpose: purpose
+            })
+        });
+        const result = await response.json();
+        console.log('Resend OTP Response:', result);
+        return result;
+    },
+
+    // OTP Login APIs
+    async userLoginWithOTP(identifier, otp) {
+        const response = await fetch(`${API_BASE_URL}/otp/login/user`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ identifier, otp })
+        });
+        return await response.json();
+    },
+
+    async staffLoginWithOTP(identifier, otp) {
+        const response = await fetch(`${API_BASE_URL}/otp/login/staff`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ identifier, otp })
+        });
+        return await response.json();
+    },
+
+    async adminLoginWithOTP(identifier, otp) {
+        const response = await fetch(`${API_BASE_URL}/otp/login/admin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ identifier, otp })
+        });
+        return await response.json();
+    },
+
+    // OTP Signup API
+    async userSignUpWithOTP(registrationData) {
+        const response = await fetch(`${API_BASE_URL}/otp/signup/user`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(registrationData)
+        });
+        return await response.json();
+    },
+    
+    // Health check
+    async healthCheck() {
+        const response = await fetch(`${API_BASE_URL}/health`);
+        return await response.json();
     }
-});
-
-// Mobile menu toggle
-document
-    .getElementById("mobile-menu-button")
-    .addEventListener("click", function () {
-        const mobileMenu = document.getElementById("mobile-menu");
-        mobileMenu.classList.toggle("hidden");
-    });
-
-// Smooth scrolling for anchor links
-document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-    anchor.addEventListener("click", function (e) {
-        e.preventDefault();
-        const targetId = this.getAttribute("href");
-        if (targetId === "#") return;
-
-        const targetElement = document.querySelector(targetId);
-        if (targetElement) {
-            window.scrollTo({
-                top: targetElement.offsetTop - 80,
-                behavior: "smooth",
-            });
-
-            // Close mobile menu if open
-            document.getElementById("mobile-menu").classList.add("hidden");
-        }
-    });
-});
-
-// Section fade-in animation on scroll
-const observerOptions = {
-    root: null,
-    rootMargin: "0px",
-    threshold: 0.1,
 };
 
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add("section-visible");
-        }
-    });
-}, observerOptions);
+// --- DOM Elements ---
+const authModal = document.getElementById('authModal');
+const closeAuthModal = document.getElementById('closeAuthModal');
+const navButtons = [
+  document.getElementById('navLoginBtn'), 
+  document.getElementById('navRegisterBtn'), 
+  document.getElementById('mobileLoginBtn'), 
+  document.getElementById('mobileRegisterBtn'),
+  document.getElementById('heroGetStartedBtn')
+];
+const roleButtons = document.querySelectorAll('.user-type-btn');
+const formSections = document.querySelectorAll('.form-section');
+const staffTabs = [document.getElementById('staffSignUpTab'), document.getElementById('staffSignInTab')];
+const userTabs = [document.getElementById('userSignUpTab'), document.getElementById('userSignInTab')];
+const loginMethodButtons = document.querySelectorAll('.login-method-btn');
+const mobileMenuButton = document.getElementById('mobile-menu-button');
+const mobileMenu = document.getElementById('mobile-menu');
+const navbar = document.getElementById('navbar');
 
-document.querySelectorAll(".section-fade-in").forEach((section) => {
-    observer.observe(section);
-});
+// --- Helper Functions ---
 
-// Authentication Modal Logic
-const authModal = document.getElementById("authModal");
-const closeAuthModal = document.getElementById("closeAuthModal");
-
-// Open modal triggers
-const navLoginBtn = document.getElementById("navLoginBtn");
-const navRegisterBtn = document.getElementById("navRegisterBtn");
-const mobileLoginBtn = document.getElementById("mobileLoginBtn");
-const mobileRegisterBtn = document.getElementById("mobileRegisterBtn");
-const heroGetStartedBtn = document.getElementById("heroGetStartedBtn");
-const ctaSignUpBtn = document.getElementById("ctaSignUpBtn");
-
-// User type selection
-const userBtn = document.getElementById("userBtn");
-const staffBtn = document.getElementById("staffBtn");
-const adminBtn = document.getElementById("adminBtn");
-
-const userSection = document.getElementById("userSection");
-const staffSection = document.getElementById("staffSection");
-const adminSection = document.getElementById("adminSection");
-
-// User authentication tabs
-const userSignUpTab = document.getElementById("userSignUpTab");
-const userSignInTab = document.getElementById("userSignInTab");
-const userSignUpForm = document.getElementById("userSignUpForm");
-const userSignInForm = document.getElementById("userSignInForm");
-const userSubmitBtn = document.getElementById("userSubmitBtn");
-
-// Staff authentication tabs
-const staffSignUpTab = document.getElementById("staffSignUpTab");
-const staffSignInTab = document.getElementById("staffSignInTab");
-const staffSignUpForm = document.getElementById("staffSignUpForm");
-const staffSignInForm = document.getElementById("staffSignInForm");
-const staffSubmitBtn = document.getElementById("staffSubmitBtn");
-
-// Admin authentication tabs
-const adminSignInTab = document.getElementById("adminSignInTab");
-const adminSignInForm = document.getElementById("adminSignInForm");
-const adminSubmitBtn = document.getElementById("adminSubmitBtn");
-
-// Function to open modal with specific user type and form
-function openAuthModal(userType = "user", formType = "signup") {
-    authModal.classList.remove("hidden");
-    resetUserTypeButtons();
-
-    // Hide all sections initially
-    hideAllSections();
-
-    if (userType === "user") {
-        userBtn.classList.add("active");
-        userSection.classList.remove("hidden-section");
-        userSection.classList.add("visible-section");
-
-        // Trigger tab click to set form/button state
-        if (formType === "signin") {
-            userSignInTab.click();
-        } else {
-            userSignUpTab.click();
-        }
-    } else if (userType === "staff") {
-        staffBtn.classList.add("active");
-        staffSection.classList.remove("hidden-section");
-        staffSection.classList.add("visible-section");
-
-        // Trigger tab click to set form/button state
-        if (formType === "signin") {
-            staffSignInTab.click();
-        } else {
-            staffSignUpTab.click();
-        }
-    } else if (userType === "admin") {
-        adminBtn.classList.add("active");
-        adminSection.classList.remove("hidden-section");
-        adminSection.classList.add("visible-section");
-        // Admin only has a sign-in tab visible
-    }
-}
-
-// Function to reset all user type buttons
-function resetUserTypeButtons() {
-    userBtn.classList.remove("active");
-    staffBtn.classList.remove("active");
-    adminBtn.classList.remove("active");
-}
-
-// Function to hide all sections
-function hideAllSections() {
-    userSection.classList.remove("visible-section");
-    userSection.classList.add("hidden-section");
-    staffSection.classList.remove("visible-section");
-    staffSection.classList.add("hidden-section");
-    adminSection.classList.remove("visible-section");
-    adminSection.classList.add("hidden-section");
-}
-
-// --- CORE FORM SUBMISSION LOGIC ---
-async function handleFormSubmission(
-    formElement,
-    submitBtnElement,
-    endpoint,
-    successMessage,
-    isSignUp = false,
-    isStaff = false
-) {
-    // Simple client-side validation check
-    if (!formElement.checkValidity()) {
-        formElement.reportValidity();
-        return;
-    }
-
-    const formData = new FormData(formElement);
-    const data = Object.fromEntries(formData.entries());
-
-    console.log("🔍 Form data collected:", data);
-
-    // Password Mismatch Check for Sign Up forms
-    if (isSignUp) {
-        if (data.password !== data.confirmPassword) {
-            alert("Error: Passwords do not match.");
-            return;
+const toggleModal = (show = true, initialRole = 'user', initialTab = 'signup') => {
+  if (show) {
+    authModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    
+    switchRole(initialRole);
+    
+    const roleElement = document.getElementById(`${initialRole}Section`);
+    if (roleElement) {
+        const tabId = initialTab === 'signup' ? `${initialRole}SignUpTab` : `${initialRole}SignInTab`;
+        const tabElement = document.getElementById(tabId);
+        if (tabElement) {
+            handleTabSwitch(tabElement);
         }
     }
+  } else {
+    authModal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+};
 
-    // Prevent double submission
-    const originalText = submitBtnElement.textContent;
-    submitBtnElement.disabled = true;
-    submitBtnElement.textContent = "Processing...";
-
-    // Prepare data structure for the backend
-    let payload = {};
-    if (isSignUp && !isStaff) {
-        // User Signup
-        payload = {
-            name: data.name,
-            email: data.email,
-            password: data.password,
-            phone: data.phone,
-            street: data.street,
-            city: data.city,
-            state: data.state,
-            pincode: data.pincode,
-        };
-    } else if (!isSignUp && !isStaff) {
-        // User Sign In
-        payload = {
-            email: data.loginIdentifier,
-            password: data.password,
-        };
-    } else if (isStaff && isSignUp) {
-        // Staff Signup
-        payload = {
-            name: `${data.firstname} ${data.lastname}`,
-            email: data.workEmail,
-            staffId: data.staffId,
-            phone: data.phone,
-            password: data.password,
-        };
-    } else if (isStaff && !isSignUp) {
-        // Staff Sign In
-        payload = {
-            staffIdOrEmail: data.staffIdOrEmail,
-            password: data.password,
-        };
+const switchRole = (role) => {
+  formSections.forEach(section => {
+    section.classList.add('hidden');
+  });
+  document.getElementById(`${role}Section`).classList.remove('hidden');
+  
+  roleButtons.forEach(btn => {
+    if (btn.dataset.role === role) {
+      btn.classList.add('active');
     } else {
-        // Admin Sign In
-        payload = {
-            adminId: data.adminId,
-            password: data.password,
-        };
+      btn.classList.remove('active');
     }
+  });
+  
+  updateSubmitButtonText(role);
+};
 
-    const finalUrl = BASE_URL + endpoint;
+const handleTabSwitch = (tabElement) => {
+  const formId = tabElement.dataset.form;
+  const formElement = document.getElementById(formId);
+  const role = formId.startsWith('user') ? 'user' : formId.startsWith('staff') ? 'staff' : 'admin';
+  
+  const tabContainer = tabElement.parentNode;
+  tabContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  
+  tabElement.classList.add('active');
 
-    console.log("🚀 SENDING REQUEST:");
-    console.log("URL:", finalUrl);
-    console.log("Method: POST");
-    console.log("Payload:", payload);
-    console.log("Is Signup:", isSignUp);
-    console.log("Is Staff:", isStaff);
+  const formSection = tabElement.closest('.form-section');
+  formSection.querySelectorAll('form').forEach(f => f.classList.add('hidden'));
 
-    try {
-        const response = await fetch(finalUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
+  formElement.classList.remove('hidden');
+
+  // Reset OTP sections
+  document.getElementById(`${role}SignupOtpSection`)?.classList.add('hidden');
+  document.getElementById(`${role}LoginOtpSection`)?.classList.add('hidden');
+  
+  const isSignIn = formId.includes('SignIn');
+  
+  let currentLoginMethod = 'password';
+  if (isSignIn) {
+      const selectedBtn = document.querySelector(`#${role}Section .login-method-btn.selected`);
+      currentLoginMethod = selectedBtn ? selectedBtn.dataset.method : 'password';
+  }
+
+  const passwordFields = document.getElementById(`${role}PasswordFields`);
+  const otpFields = document.getElementById(`${role}OtpFields`);
+
+  if (isSignIn) {
+      if (currentLoginMethod === 'password') {
+          passwordFields?.classList.remove('hidden');
+          otpFields?.classList.add('hidden');
+      } else {
+          passwordFields?.classList.add('hidden');
+          otpFields?.classList.remove('hidden');
+          document.getElementById(`${role}LoginOtpSection`)?.classList.add('hidden');
+      }
+  }
+
+  updateSubmitButtonText(role, isSignIn, currentLoginMethod);
+};
+
+const handleLoginMethodSwitch = (button) => {
+    const method = button.dataset.method;
+    const role = button.dataset.form;
+
+    const container = button.parentNode;
+    container.querySelectorAll('.login-method-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    button.classList.add('selected');
+
+    const passwordFields = document.getElementById(`${role}PasswordFields`);
+    const otpFields = document.getElementById(`${role}OtpFields`);
+    const sendOtpBtn = document.getElementById(`${role}SendOtpBtn`);
+
+    if (method === 'password') {
+        passwordFields?.classList.remove('hidden');
+        otpFields?.classList.add('hidden');
+        document.getElementById(`${role}LoginOtpSection`)?.classList.add('hidden');
+        if (sendOtpBtn) {
+            sendOtpBtn.classList.remove('hidden');
+        }
+    } else {
+        passwordFields?.classList.add('hidden');
+        otpFields?.classList.remove('hidden');
+        document.getElementById(`${role}LoginOtpSection`)?.classList.add('hidden');
+    }
+    
+    updateSubmitButtonText(role, true, method);
+};
+
+const updateSubmitButtonText = (role, isSignIn = false, loginMethod = 'password') => {
+    const submitBtn = document.getElementById(`${role}SubmitBtn`);
+    if (!submitBtn) return;
+
+    let text;
+    let currentMethod = loginMethod;
+
+    if (isSignIn) {
+        if (loginMethod === 'otp') {
+            const otpSection = document.getElementById(`${role}LoginOtpSection`);
+            if (otpSection && !otpSection.classList.contains('hidden')) {
+                 text = 'VERIFY OTP & SIGN IN';
+                 currentMethod = 'otp';
+            } else {
+                 text = 'SIGN IN'; 
+                 currentMethod = 'otp';
+            }
+        } else {
+            text = 'SIGN IN';
+            currentMethod = 'password';
+        }
+    } else {
+        const otpSection = document.getElementById(`${role}SignupOtpSection`);
+        if (otpSection && !otpSection.classList.contains('hidden')) {
+            text = 'VERIFY OTP & COMPLETE SIGNUP';
+        } else {
+            text = role === 'user' ? 'SIGN UP' : 'REGISTER AS STAFF';
+        }
+        currentMethod = 'password';
+    }
+    
+    submitBtn.textContent = text;
+    submitBtn.dataset.form = isSignIn ? `${role}SignInForm` : `${role}SignUpForm`;
+    submitBtn.dataset.role = role;
+    submitBtn.dataset.method = currentMethod;
+};
+
+const setupOtpInputs = (containerId, submitBtnId) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const inputs = container.querySelectorAll('.otp-input');
+    
+    inputs.forEach((input, index) => {
+        input.value = ''; 
+        
+        input.addEventListener('input', (e) => {
+            const value = e.target.value.replace(/[^0-9]/g, '');
+            e.target.value = value;
+            
+            if (value.length === 1 && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            } else if (value.length === 1 && index === inputs.length - 1) {
+                 if (getOtpValue(containerId).length === 6) {
+                     const submitBtn = document.getElementById(submitBtnId);
+                     if (submitBtn && submitBtn.textContent.includes('VERIFY')) {
+                         submitBtn.click();
+                     }
+                 }
+            }
         });
 
-        console.log("📨 RESPONSE RECEIVED:");
-        console.log("Status:", response.status);
-        console.log("Status Text:", response.statusText);
-        console.log("OK:", response.ok);
-        console.log("Headers:", Object.fromEntries(response.headers.entries()));
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                inputs[index - 1].focus();
+            }
+        });
+    });
+    if(inputs.length > 0) inputs[0].focus();
+};
 
-        // Get response as text first to see what we're getting
-        const responseText = await response.text();
-        console.log("Raw Response Text:", responseText);
+const getOtpValue = (containerId) => {
+    const container = document.getElementById(containerId);
+    if (!container) return "";
+    return Array.from(container.querySelectorAll('.otp-input')).map(input => input.value).join('');
+};
 
-        // Check if the server responded but with an error status
-        if (!response.ok) {
-            console.log("❌ SERVER RETURNED ERROR STATUS");
-            
-            // Try to parse as JSON, but if it fails, use the raw text
-            let errorMessage = `Server returned status ${response.status}`;
-            
-            if (responseText) {
+/**
+ * FIXED: Role-based redirect logic
+ */
+const handleAuthSuccess = (response, role) => {
+    const successMessage = `${role.toUpperCase()} Authentication successful!`;
+    
+    if (response.data?.accessToken) {
+        localStorage.setItem('authToken', response.data.accessToken);
+    }
+    
+    toggleModal(false);
+    showTemporaryMessage(successMessage);
+    
+    try {
+        localStorage.setItem('userRole', role);
+    } catch (e) {
+        console.error('Storage error:', e);
+    }
+    
+    // FIXED: Role-based redirect
+    setTimeout(() => {
+        let redirectUrl = 'home.html'; // default
+        
+        if (role === 'admin') {
+            redirectUrl = 'admin.html';
+        } else if (role === 'staff') {
+            redirectUrl = 'staff.html';
+        } else if (role === 'user') {
+            redirectUrl = 'home.html';
+        }
+        
+        console.log(`Redirecting ${role} to ${redirectUrl}`);
+        window.location.replace(redirectUrl);
+    }, 150);
+};
+
+/**
+ * FIXED: Extract form data properly for sign-in
+ */
+const getSignInCredentials = (form, role) => {
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    let identifier, password;
+    
+    if (role === 'user') {
+        identifier = data.loginIdentifier;
+        password = data.password;
+    } else if (role === 'staff') {
+        identifier = data.staffIdOrEmail;
+        password = data.password;
+    } else if (role === 'admin') {
+        identifier = data.adminId;
+        password = data.password;
+    }
+    
+    return { identifier, password };
+};
+
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const submitBtn = e.currentTarget;
+    const formId = submitBtn.dataset.form;
+    const role = submitBtn.dataset.role;
+    const method = submitBtn.dataset.method;
+    const form = document.getElementById(formId);
+
+    console.log('[AUTH] handleSubmit called', { formId, role, method });
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    const isSignup = formId.includes('SignUp');
+    const otpSection = document.getElementById(isSignup ? `${role}SignupOtpSection` : `${role}LoginOtpSection`);
+    const isVerifying = submitBtn.textContent.includes('VERIFY OTP'); 
+
+    try {
+        if (isSignup) {
+            // SIGNUP LOGIC (unchanged)
+            const identifier = data.email || data.phone;
+            if (!identifier) {
+                showTemporaryMessage("Email or Phone is required to register.");
+                return;
+            }
+
+            const hasPassword = !!data.password || !!data.confirmPassword;
+            if (!isVerifying && hasPassword) {
+                if (data.password !== data.confirmPassword) {
+                    showTemporaryMessage("Passwords do not match!");
+                    return;
+                }
+
+                const registrationData = {
+                    name: data.name,
+                    email: data.email,
+                    phone: data.phone,
+                    password: data.password,
+                    ...(role === 'user' && {
+                        street: data.street,
+                        city: data.city,
+                        state: data.state,
+                        pincode: data.pincode
+                    }),
+                    ...(role === 'staff' && {
+                        staffId: data.staffId
+                    })
+                };
+
+                let signupResponse;
                 try {
-                    const errorResult = JSON.parse(responseText);
-                    errorMessage = errorResult.message || errorResult.error || JSON.stringify(errorResult);
-                } catch (e) {
-                    // If it's not JSON, use the raw text
-                    errorMessage = `Server returned status ${response.status}: ${responseText}`;
+                    if (role === 'user') {
+                        signupResponse = await apiService.userSignUp(registrationData);
+                    } else {
+                        signupResponse = await apiService.staffSignUp(registrationData);
+                    }
+                } catch (err) {
+                    console.error('Signup error:', err);
+                    showTemporaryMessage('Signup failed. Please try again.');
+                    return;
+                }
+
+                if (signupResponse?.success) {
+                    handleAuthSuccess(signupResponse, role);
+                    form.reset();
+                } else {
+                    showTemporaryMessage(signupResponse?.message || 'Registration failed');
+                }
+
+                return;
+            }
+
+            // OTP Signup flow
+            if (!isVerifying) {
+                console.log(`[${role.toUpperCase()} SIGNUP] Sending OTP to ${identifier}...`);
+                const otpResponse = await apiService.sendOTP(identifier, role, 'signup');
+
+                if (otpResponse.success) {
+                    otpSection.classList.remove('hidden');
+                    updateSubmitButtonText(role, false);
+                    setupOtpInputs(`${role}SignupOtpInputs`, `${role}SubmitBtn`);
+                    showTemporaryMessage("OTP sent! Check your email/phone.");
+                } else {
+                    showTemporaryMessage(otpResponse.message || "Failed to send OTP. Check server logs.");
+                }
+
+            } else if (isVerifying) {
+                const otp = getOtpValue(`${role}SignupOtpInputs`);
+                if (otp.length !== 6) {
+                    showTemporaryMessage("Please enter the full 6-digit OTP.");
+                    return;
+                }
+
+                console.log(`[${role.toUpperCase()} SIGNUP] Verifying OTP: ${otp}`);
+                const verifyResponse = await apiService.verifyOTP(identifier, otp, role, 'signup');
+
+                if (verifyResponse.success) {
+                    const registrationData = {
+                        name: data.name,
+                        email: data.email,
+                        phone: data.phone,
+                        otp: otp,
+                        ...(role === 'user' && {
+                            street: data.street,
+                            city: data.city,
+                            state: data.state,
+                            pincode: data.pincode
+                        }),
+                        ...(role === 'staff' && {
+                            staffId: data.staffId
+                        })
+                    };
+
+                    let finalRegistrationResponse;
+                    if (role === 'user') {
+                        finalRegistrationResponse = await apiService.userSignUpWithOTP(registrationData);
+                    } else {
+                        finalRegistrationResponse = await apiService.staffSignUp(registrationData);
+                    }
+
+                    if (finalRegistrationResponse.success) {
+                        handleAuthSuccess(finalRegistrationResponse, role);
+                        form.reset();
+                        otpSection.classList.add('hidden');
+                    } else {
+                        showTemporaryMessage(finalRegistrationResponse.message || "Registration failed");
+                    }
+                } else {
+                    showTemporaryMessage(verifyResponse.message || "Invalid OTP");
                 }
             }
-            
-            console.log("Error Message:", errorMessage);
-            throw new Error(errorMessage);
-        }
 
-        // If we got here, response is OK (200-299)
-        console.log("✅ SERVER RETURNED SUCCESS STATUS");
-        
-        let result;
-        if (responseText) {
-            try {
-                result = JSON.parse(responseText);
-                console.log("Parsed JSON Result:", result);
-            } catch (e) {
-                console.error("Failed to parse JSON:", e);
-                throw new Error("Server returned invalid JSON response");
-            }
         } else {
-            console.warn("Server returned empty response");
-            result = { message: "Empty response from server" };
-        }
+            // SIGN IN LOGIC - FIXED
+            
+            if (method === 'password') {
+                // FIXED: Get credentials properly
+                const credentials = getSignInCredentials(form, role);
+                
+                if (!credentials.identifier || !credentials.password) {
+                     showTemporaryMessage("Please enter both identifier and password.");
+                     return;
+                }
 
-        // 🚨 UPDATED SUCCESS PATH - STORE TOKENS AND REDIRECT
-        console.log("🎉 SUCCESS - Processing result:", result);
+                console.log('[AUTH] Password sign-in attempt', { role, identifier: credentials.identifier });
 
-        // Store token and user data for homepage
-        if (result.accessToken && result.user) {
-            console.log("📦 Storing token and user data");
-            localStorage.setItem('accessToken', result.accessToken);
-            localStorage.setItem('user', JSON.stringify(result.user));
-            
-            formElement.reset();
-            authModal.classList.add("hidden");
-            
-            // Redirect to homepage after successful login/signup
-            setTimeout(() => {
-                console.log("🔄 Redirecting to homepage...");
-                window.location.href = 'home.html';
-            }, 1000);
-            
-        } else if (isSignUp && result.message && result.message.toLowerCase().includes("success")) {
-            // For signup without auto-login, show success and switch to login
-            console.log("📝 Signup successful, switching to login");
-            formElement.reset();
-            authModal.classList.add("hidden");
-            setTimeout(() => {
-                alert('Registration successful! Please login with your credentials.');
-                openAuthModal("user", "signin");
-            }, 500);
-            
-        } else if (result.message) {
-            // Generic success case
-            console.log("✅ Operation completed successfully");
-            formElement.reset();
-            authModal.classList.add("hidden");
-            
-            if (result.message.toLowerCase().includes("login")) {
-                // If it's a login but no token, something went wrong
-                console.warn("Login successful but no token received");
-                alert("Login successful but technical issue occurred. Please try again.");
-            } else {
-                alert(result.message);
+                let loginResponse;
+                try {
+                    if (role === 'user') {
+                        loginResponse = await apiService.userSignIn(credentials);
+                    } else if (role === 'staff') {
+                        loginResponse = await apiService.staffSignIn(credentials);
+                    } else if (role === 'admin') {
+                        loginResponse = await apiService.adminSignIn(credentials);
+                    }
+                } catch (err) {
+                    console.error('Password sign-in error:', err);
+                    showTemporaryMessage('Network error during sign-in.');
+                    return;
+                }
+
+                console.log('[AUTH] Login response:', loginResponse);
+
+                if (loginResponse?.success) {
+                    handleAuthSuccess(loginResponse, role);
+                    form.reset();
+                } else {
+                    showTemporaryMessage(loginResponse?.message || "Login failed. Check your credentials.");
+                }
+
+            } else if (method === 'otp') {
+                // OTP SIGN IN
+                const identifier = document.getElementById(`${role}OtpIdentifier`).value;
+
+                if (submitBtn.textContent.includes('SEND OTP')) {
+                    showTemporaryMessage("Please use the 'Send OTP' button next to the input.");
+                    return;
+
+                } else if (submitBtn.textContent.includes('VERIFY OTP')) {
+                    const otp = getOtpValue(`${role}LoginOtpInputs`);
+                    if (otp.length !== 6) {
+                        showTemporaryMessage("Please enter the full 6-digit OTP.");
+                        return;
+                    }
+                    
+                    let loginResponse;
+                    if (role === 'user') {
+                        loginResponse = await apiService.userLoginWithOTP(identifier, otp);
+                    } else if (role === 'staff') {
+                        loginResponse = await apiService.staffLoginWithOTP(identifier, otp);
+                    } else {
+                        loginResponse = await apiService.adminLoginWithOTP(identifier, otp);
+                    }
+                    
+                    if (loginResponse.success) {
+                        handleAuthSuccess(loginResponse, role);
+                        form.reset();
+                    } else {
+                        showTemporaryMessage(loginResponse.message || "Invalid OTP");
+                    }
+                }
+                
+                if (!isVerifying && !document.getElementById(`${role}LoginOtpSection`).classList.contains('hidden')) {
+                     console.warn("OTP submit attempted without verification step.");
+                     return;
+                }
             }
-            
-        } else {
-            // Fallback for other cases
-            console.warn("No specific success handler, using fallback");
-            formElement.reset();
-            authModal.classList.add("hidden");
-            window.location.reload();
         }
-
     } catch (error) {
-        // NETWORK OR GENERAL JS ERROR PATH
-        console.error("💥 SUBMISSION FAILED:");
-        console.error("Error name:", error.name);
-        console.error("Error message:", error.message);
-        console.error("Full error:", error);
-        
-        let userFriendlyMessage = error.message;
-        
-        // Provide more specific error messages
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            userFriendlyMessage = "Network error: Cannot connect to server. Make sure the backend is running.";
-        } else if (error.message.includes('Failed to fetch')) {
-            userFriendlyMessage = "Network error: Cannot connect to server. Check if the backend is running on port 3000.";
-        } else if (error.message.includes('CORS')) {
-            userFriendlyMessage = "CORS error: Browser blocked the request. Check server CORS configuration.";
-        }
-        
-        alert(`Error: ${userFriendlyMessage}`);
-        
-    } finally {
-        submitBtnElement.disabled = false;
-        submitBtnElement.textContent = originalText;
-        console.log("🏁 Form submission process completed");
+        console.error('API Error:', error);
+        showTemporaryMessage("Network error. Please try again.");
     }
+};
+
+const showTemporaryMessage = (message) => {
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'fixed top-4 right-4 bg-resolve-teal text-white p-4 rounded-xl shadow-2xl z-[100] transition-transform duration-500 transform translate-x-full';
+  msgDiv.textContent = message;
+  document.body.appendChild(msgDiv);
+
+  setTimeout(() => {
+      msgDiv.classList.remove('translate-x-full');
+      msgDiv.style.transform = 'translateX(0)';
+  }, 10);
+
+  setTimeout(() => {
+      msgDiv.style.transform = 'translateX(120%)';
+      msgDiv.addEventListener('transitionend', () => msgDiv.remove());
+  }, 4000);
+};
+
+// --- Event Listeners ---
+
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("Frontend initialized");
+    
+    try {
+        const health = await apiService.healthCheck();
+        console.log("Backend connection:", health);
+    } catch (error) {
+        console.error("Backend connection failed:", error);
+        showTemporaryMessage("Backend connection failed. Please make sure the server is running.");
+    }
+});
+
+mobileMenuButton.addEventListener('click', () => {
+    mobileMenu.classList.toggle('hidden');
+});
+
+window.addEventListener('scroll', () => {
+    if (window.scrollY > 50) {
+        navbar.classList.add('scrolled-nav');
+        navbar.classList.remove('bg-white', 'shadow-md');
+    } else {
+        navbar.classList.remove('scrolled-nav');
+        navbar.classList.add('bg-white', 'shadow-md');
+    }
+});
+
+closeAuthModal.addEventListener('click', () => toggleModal(false));
+authModal.addEventListener('click', (e) => {
+  if (e.target.id === 'authModal') {
+    toggleModal(false);
+  }
+});
+
+navButtons.forEach(btn => {
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+      const isRegister = btn.id.includes('Register') || btn.id.includes('hero');
+      toggleModal(true, 'user', isRegister ? 'signup' : 'signin');
+  });
+});
+
+const ctaSignUpBtn = document.getElementById('ctaSignUpBtn');
+if (ctaSignUpBtn) {
+        ctaSignUpBtn.addEventListener('click', () => toggleModal(true, 'user', 'signup'));
 }
 
-// Event listeners for opening modal
-navLoginBtn.addEventListener("click", () =>
-    openAuthModal("user", "signin")
-);
-navRegisterBtn.addEventListener("click", () =>
-    openAuthModal("user", "signup")
-);
-mobileLoginBtn.addEventListener("click", () => {
-    openAuthModal("user", "signin");
-    document.getElementById("mobile-menu").classList.add("hidden");
-});
-mobileRegisterBtn.addEventListener("click", () => {
-    openAuthModal("user", "signup");
-    document.getElementById("mobile-menu").classList.add("hidden");
-});
-heroGetStartedBtn.addEventListener("click", () =>
-    openAuthModal("user", "signup")
-);
-ctaSignUpBtn.addEventListener("click", () =>
-    openAuthModal("user", "signup")
-);
+[
+    { id: 'userSendOtpBtn', role: 'user' },
+    { id: 'staffSendOtpBtn', role: 'staff' },
+    { id: 'adminSendOtpBtn', role: 'admin' }
+].forEach(({ id, role }) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+        const identifierInput = document.getElementById(`${role}OtpIdentifier`);
+        const identifier = identifierInput?.value?.trim();
+        if (!identifier) {
+            showTemporaryMessage('Please enter your email or phone number');
+            return;
+        }
 
-// Close modal
-closeAuthModal.addEventListener("click", () => {
-    authModal.classList.add("hidden");
-});
+        try {
+            const resp = await apiService.sendOTP(identifier, role, 'login');
+            if (resp.success) {
+                const otpSection = document.getElementById(`${role}LoginOtpSection`);
+                if (otpSection) otpSection.classList.remove('hidden');
 
-// Close modal when clicking outside
-authModal.addEventListener("click", (e) => {
-    if (e.target === authModal) {
-        authModal.classList.add("hidden");
-    }
-});
-
-// User type button event listeners
-userBtn.addEventListener("click", () => {
-    resetUserTypeButtons();
-    userBtn.classList.add("active");
-    hideAllSections();
-    userSection.classList.remove("hidden-section");
-    userSection.classList.add("visible-section");
-    userSignUpTab.click();
+                updateSubmitButtonText(role, true, 'otp');
+                setupOtpInputs(`${role}LoginOtpInputs`, `${role}SubmitBtn`);
+                btn.classList.add('hidden'); 
+                showTemporaryMessage('OTP sent! Check your email/phone.');
+            } else {
+                showTemporaryMessage(resp.message || 'Failed to send OTP');
+            }
+        } catch (err) {
+            console.error('Send OTP error:', err);
+            showTemporaryMessage('Network error. Could not send OTP.');
+        }
+    });
 });
 
-staffBtn.addEventListener("click", () => {
-    resetUserTypeButtons();
-    staffBtn.classList.add("active");
-    hideAllSections();
-    staffSection.classList.remove("hidden-section");
-    staffSection.classList.add("visible-section");
-    staffSignUpTab.click();
+roleButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    switchRole(btn.dataset.role);
+  });
 });
 
-adminBtn.addEventListener("click", () => {
-    resetUserTypeButtons();
-    adminBtn.classList.add("active");
-    hideAllSections();
-    adminSection.classList.remove("hidden-section");
-    adminSection.classList.add("visible-section");
+[...userTabs, ...staffTabs].forEach(tab => {
+    if (tab) tab.addEventListener('click', (e) => handleTabSwitch(e.currentTarget));
 });
 
-// User authentication tab switching
-userSignUpTab.addEventListener("click", () => {
-    userSignUpTab.classList.add("active");
-    userSignInTab.classList.remove("active");
-    userSignUpForm.classList.remove("hidden");
-    userSignInForm.classList.add("hidden");
-    userSubmitBtn.textContent = "SIGN UP";
+loginMethodButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => handleLoginMethodSwitch(e.currentTarget));
 });
 
-userSignInTab.addEventListener("click", () => {
-    userSignInTab.classList.add("active");
-    userSignUpTab.classList.remove("active");
-    userSignInForm.classList.remove("hidden");
-    userSignUpForm.classList.add("hidden");
-    userSubmitBtn.textContent = "SIGN IN";
+document.querySelectorAll('[id$="SubmitBtn"]').forEach(btn => {
+    btn.addEventListener('click', handleSubmit);
 });
 
-// Staff authentication tab switching
-staffSignUpTab.addEventListener("click", () => {
-    staffSignUpTab.classList.add("active");
-    staffSignInTab.classList.remove("active");
-    staffSignUpForm.classList.remove("hidden");
-    staffSignInForm.classList.add("hidden");
-    staffSubmitBtn.textContent = "REGISTER AS STAFF";
+document.querySelectorAll('[id^="userResend"], [id^="staffResend"], [id^="adminResend"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const role = btn.id.includes('user') ? 'user' : btn.id.includes('staff') ? 'staff' : 'admin';
+        const isSignup = btn.id.includes('Signup');
+        
+        let identifier;
+        if (isSignup) {
+            identifier = document.getElementById(`${role}SignupEmail`)?.value;
+        } else {
+            identifier = document.getElementById(`${role}OtpIdentifier`)?.value;
+        }
+        
+        if (identifier) {
+            const purpose = isSignup ? 'signup' : 'login';
+            const response = await apiService.resendOTP(identifier, role, purpose);
+            if (response.success) {
+                showTemporaryMessage("OTP resent successfully!");
+            } else {
+                showTemporaryMessage(response.message || "Failed to resend OTP");
+            }
+        } else {
+            showTemporaryMessage("Please enter your email/phone first");
+        }
+    });
 });
 
-staffSignInTab.addEventListener("click", () => {
-    staffSignInTab.classList.add("active");
-    staffSignUpTab.classList.remove("active");
-    staffSignInForm.classList.remove("hidden");
-    staffSignUpForm.classList.add("hidden");
-    staffSubmitBtn.textContent = "STAFF LOGIN";
+document.querySelectorAll('[id$="ForgotPassword"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        showTemporaryMessage("Password reset feature coming soon!");
+    });
 });
 
-// --- FORM SUBMISSION HANDLERS ---
-
-// User Submission
-userSubmitBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    const isSignUp = !userSignUpForm.classList.contains("hidden");
-    const formElement = isSignUp ? userSignUpForm : userSignInForm;
-    const endpoint = isSignUp ? "/api/users/signup" : "/api/users/login";
-    const message = isSignUp
-        ? "User Registration Successful"
-        : "User Login Successful";
-
-    handleFormSubmission(
-        formElement,
-        userSubmitBtn,
-        endpoint,
-        message,
-        isSignUp,
-        false
-    );
-});
-
-// Staff Submission
-staffSubmitBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    const isSignUp = !staffSignUpForm.classList.contains("hidden");
-    const formElement = isSignUp ? staffSignUpForm : staffSignInForm;
-    const endpoint = isSignUp ? "/api/staff/register" : "/api/staff/login";
-    const message = isSignUp
-        ? "Staff Registration Successful"
-        : "Staff Login Successful";
-
-    handleFormSubmission(
-        formElement,
-        staffSubmitBtn,
-        endpoint,
-        message,
-        isSignUp,
-        true
-    );
-});
-
-// Admin Submission
-adminSubmitBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    const endpoint = "/api/admin/login";
-    const message = "Admin Login Successful";
-
-    handleFormSubmission(
-        adminSignInForm,
-        adminSubmitBtn,
-        endpoint,
-        message,
-        false,
-        true
-    );
-});
+const contactForm = document.getElementById('contactForm');
+if (contactForm) {
+    contactForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const contactData = Object.fromEntries(formData.entries());
+        
+        console.log("Contact form data:", contactData);
+        showTemporaryMessage("Thank you! Your message has been received.");
+        e.target.reset();
+    });
+}
