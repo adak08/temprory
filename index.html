@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ResolveX</title>
+    <title>ResolveX - Community Issue Resolution Platform</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Configure Tailwind for Inter font and custom colors -->
@@ -32,7 +32,140 @@
     />
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="stylesheets/index.css">
+    <style>
+      /* Custom CSS for ResolveX */
+      .logo-x {
+        background: linear-gradient(135deg, #1a1f71, #00897b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      .btn-gradient {
+        background: linear-gradient(135deg, #1a1f71, #00897b);
+      }
+      
+      .btn-gradient:hover {
+        background: linear-gradient(135deg, #2a2f91, #00a99b);
+      }
+      
+      .gradient-bg {
+        background: linear-gradient(135deg, #1a1f71, #00897b);
+      }
+      
+      .hero-bg {
+        background: linear-gradient(135deg, #1a1f71 0%, #00897b 100%);
+      }
+      
+      .nav-scrolled {
+        background-color: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+      }
+      
+      .form-input {
+        border: 1px solid #d1d5db;
+        transition: all 0.3s ease;
+      }
+      
+      .form-input:focus {
+        border-color: #1a1f71;
+        box-shadow: 0 0 0 3px rgba(26, 31, 113, 0.1);
+        outline: none;
+      }
+      
+      .tab {
+        padding: 0.5rem 1.5rem;
+        cursor: pointer;
+        color: #6b7280;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+      }
+      
+      .tab.active {
+        color: #1a1f71;
+        border-bottom-color: #1a1f71;
+      }
+      
+      .user-type-btn.active {
+        background: linear-gradient(135deg, #1a1f71, #00897b);
+        color: white;
+      }
+      
+      .form-section {
+        transition: all 0.3s ease;
+      }
+      
+      .visible-section {
+        display: block;
+        opacity: 1;
+      }
+      
+      .hidden-section {
+        display: none;
+        opacity: 0;
+      }
+      
+      .section-fade-in {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+      
+      .section-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      
+      .feature-card, .testimonial-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      
+      .feature-card:hover, .testimonial-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+      
+      .otp-input {
+        width: 40px;
+        height: 40px;
+        text-align: center;
+        font-size: 18px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+      
+      .otp-input:focus {
+        border-color: #1a1f71;
+        box-shadow: 0 0 0 3px rgba(26, 31, 113, 0.1);
+        outline: none;
+      }
+      
+      .login-method-btn {
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      
+      .login-method-btn.selected {
+        border-color: #1a1f71;
+        background-color: rgba(26, 31, 113, 0.05);
+      }
+      
+      .auth-container {
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      }
+      
+      @media (max-width: 768px) {
+        .auth-container {
+          margin: 1rem;
+          max-height: calc(100vh - 2rem);
+        }
+      }
+    </style>
   </head>
   <body class="bg-gray-50 font-sans">
     <header class="fixed w-full z-50 transition-all duration-300 bg-white shadow-md" id="navbar">
@@ -990,6 +1123,6 @@
     </footer>
     
     <!-- JavaScript Logic -->
-    <script src="scripts/index.js"></script>
+<script src="scripts/index.js"></script>
   </body>
 </html>

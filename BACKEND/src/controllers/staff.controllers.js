@@ -1,21 +1,22 @@
 import Staff from "../models/Staff.models.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-export const staffRegister = async(req, res) => {
+export const staffRegister = async (req, res) => {
     try {
         const { name, email, password, phone, staffId } = req.body;
-        
         if (!name || !email || !password || !staffId) {
-            return res.status(400).json({ 
-                success: false,
-                message: "Please fill all required fields for staff registration." 
+            return res.status(400).json({
+                success: false, // ← ADD THIS
+                message: "Please fill all required fields for staff registration."
             });
         }
         
         const existingStaff = await Staff.findOne({ $or: [{ email }, { staffId }] });
         if (existingStaff) {
-            return res.status(400).json({ 
-                success: false,
-                message: "Email or Staff ID already registered." 
+            return res.status(400).json({
+                success: false, // ← ADD THIS
+                message: "Email or Staff ID already registered."
             });
         }
 
@@ -31,59 +32,34 @@ export const staffRegister = async(req, res) => {
         });
         
         await newStaff.save();
-
-        // Generate tokens immediately after registration
-        const payload = { id: newStaff._id, role: newStaff.role || "staff" };
-        const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
-        const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
-
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+        
+        res.status(201).json({
+            success: true, // ← ADD THIS
+            message: "Staff registered successfully. Awaiting admin approval."
         });
-
-        res.status(201).json({ 
-            success: true,
-            message: "Staff registered successfully.",
-            data: {
-                accessToken,
-                staff: {
-                    id: newStaff._id,
-                    name: newStaff.name,
-                    email: newStaff.email,
-                    staffId: newStaff.staffId,
-                    role: newStaff.role
-                }
-            }
-        });
+        
     } catch (err) {
         console.error("Staff registration error:", err);
-        res.status(500).json({ 
-            success: false,
-            message: "Server Error during staff registration" 
+        res.status(500).json({
+            success: false, // ← ADD THIS
+            message: "Server Error during staff registration"
         });
     }
 };
 
-// FIXED: Accept 'identifier' instead of 'staffIdOrEmail'
-export const staffLogin = async(req, res) => {
+export const staffLogin = async (req, res) => {
     try {
-        // Frontend sends 'identifier' and 'password'
-        const { identifier, password } = req.body;
+        const { staffIdOrEmail, password } = req.body; 
         
-        console.log('[STAFF LOGIN] Received:', { identifier, password: '***' });
-
-        if (!identifier || !password) {
+        if (!staffIdOrEmail || !password) {
             return res.status(400).json({ 
                 success: false,
-                message: "Please provide identifier and password" 
+                message: "Staff ID/Email and password are required" 
             });
         }
-
+        
         const staff = await Staff.findOne({
-            $or: [{ email: identifier }, { staffId: identifier }],
+            $or: [{ email: staffIdOrEmail }, { staffId: staffIdOrEmail }], 
         });
         
         if (!staff) {
@@ -95,13 +71,17 @@ export const staffLogin = async(req, res) => {
         
         const isMatch = await bcrypt.compare(password, staff.password);
         if (!isMatch) {
-            return res.status(400).json({ 
-                success: false,
+            return res.status(400).json({
+                success: false, 
                 message: "Invalid Credentials" 
             });
-        }
+        } 
         
-        const payload = { id: staff._id, role: staff.role || "staff" };
+        const payload = { 
+            id: staff._id,
+            role: staff.role || "staff"
+        };
+        
         const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
         
@@ -109,21 +89,23 @@ export const staffLogin = async(req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+            maxAge: 7 * 24 * 60 * 60 * 1000, 
         });
         
-        res.status(200).json({
-            success: true,
-            message: "Staff Login Successful",
-            data: {
-                accessToken,
-                staff: { 
-                    id: staff._id, 
-                    name: staff.name, 
-                    role: staff.role 
-                }
+        // RETURN THE RESPONSE IN THE FORMAT FRONTEND EXPECTS
+        res.status(200).json({ 
+            success: true, // ← ADD THIS
+            message: "Staff Login Successful", 
+            accessToken,
+            staff: {
+                _id: staff._id, // ← CHANGE FROM 'id' TO '_id'
+                name: staff.name,
+                role: staff.role,
+                staffId: staff.staffId,
+                email: staff.email
             }
         });
+        
     } catch (err) {
         console.error("Staff Login Error:", err);
         res.status(500).json({ 

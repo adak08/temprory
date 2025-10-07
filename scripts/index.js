@@ -1,824 +1,1173 @@
-// --- API Base URL ---
-const API_BASE_URL = 'http://localhost:3000/api';
+document.addEventListener("DOMContentLoaded", function () {
+  console.log("✅ DOM fully loaded - initializing ResolveX");
 
-// --- API Service Functions ---
-const apiService = {
-    // User APIs
-    async userSignUp(userData) {
-        const response = await fetch(`${API_BASE_URL}/users/signup`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userData)
-        });
-        return await response.json();
-    },
+  const BASE_URL = "http://localhost:3000";
 
-    async userSignIn(credentials) {
-        const response = await fetch(`${API_BASE_URL}/users/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(credentials)
-        });
-        return await response.json();
-    },
-
-    // Staff APIs
-    async staffSignUp(staffData) {
-        const response = await fetch(`${API_BASE_URL}/staff/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(staffData)
-        });
-        return await response.json();
-    },
-
-    async staffSignIn(credentials) {
-        const response = await fetch(`${API_BASE_URL}/staff/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(credentials)
-        });
-        return await response.json();
-    },
-
-    // Admin APIs
-    async adminSignIn(credentials) {
-        const response = await fetch(`${API_BASE_URL}/admin/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(credentials)
-        });
-        return await response.json();
-    },
-
-    // OTP APIs
-    async sendOTP(identifier, role, purpose = 'signup') {
-        console.log(`Sending OTP request: identifier=${identifier}, role=${role}, purpose=${purpose}`);
-        const response = await fetch(`${API_BASE_URL}/otp/request`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                identifier, 
-                userType: role,
-                purpose: purpose,
-                type: identifier.includes('@') ? 'email' : 'phone'
-            })
-        });
-        const result = await response.json();
-        console.log('OTP Response:', result);
-        return result;
-    },
-
-    async verifyOTP(identifier, otp, role, purpose = 'signup') {
-        console.log(`Verifying OTP: identifier=${identifier}, role=${role}, purpose=${purpose}`);
-        const response = await fetch(`${API_BASE_URL}/otp/verify`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                identifier, 
-                otp,
-                purpose: purpose
-            })
-        });
-        const result = await response.json();
-        console.log('Verify OTP Response:', result);
-        return result;
-    },
-
-    async resendOTP(identifier, role, purpose = 'signup') {
-        console.log(`Resending OTP: identifier=${identifier}, role=${role}, purpose=${purpose}`);
-        const response = await fetch(`${API_BASE_URL}/otp/resend`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                identifier,
-                purpose: purpose
-            })
-        });
-        const result = await response.json();
-        console.log('Resend OTP Response:', result);
-        return result;
-    },
-
-    // OTP Login APIs
-    async userLoginWithOTP(identifier, otp) {
-        const response = await fetch(`${API_BASE_URL}/otp/login/user`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ identifier, otp })
-        });
-        return await response.json();
-    },
-
-    async staffLoginWithOTP(identifier, otp) {
-        const response = await fetch(`${API_BASE_URL}/otp/login/staff`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ identifier, otp })
-        });
-        return await response.json();
-    },
-
-    async adminLoginWithOTP(identifier, otp) {
-        const response = await fetch(`${API_BASE_URL}/otp/login/admin`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ identifier, otp })
-        });
-        return await response.json();
-    },
-
-    // OTP Signup API
-    async userSignUpWithOTP(registrationData) {
-        const response = await fetch(`${API_BASE_URL}/otp/signup/user`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(registrationData)
-        });
-        return await response.json();
-    },
-    
-    // Health check
-    async healthCheck() {
-        const response = await fetch(`${API_BASE_URL}/health`);
-        return await response.json();
-    }
-};
-
-// --- DOM Elements ---
-const authModal = document.getElementById('authModal');
-const closeAuthModal = document.getElementById('closeAuthModal');
-const navButtons = [
-  document.getElementById('navLoginBtn'), 
-  document.getElementById('navRegisterBtn'), 
-  document.getElementById('mobileLoginBtn'), 
-  document.getElementById('mobileRegisterBtn'),
-  document.getElementById('heroGetStartedBtn')
-];
-const roleButtons = document.querySelectorAll('.user-type-btn');
-const formSections = document.querySelectorAll('.form-section');
-const staffTabs = [document.getElementById('staffSignUpTab'), document.getElementById('staffSignInTab')];
-const userTabs = [document.getElementById('userSignUpTab'), document.getElementById('userSignInTab')];
-const loginMethodButtons = document.querySelectorAll('.login-method-btn');
-const mobileMenuButton = document.getElementById('mobile-menu-button');
-const mobileMenu = document.getElementById('mobile-menu');
-const navbar = document.getElementById('navbar');
-
-// --- Helper Functions ---
-
-const toggleModal = (show = true, initialRole = 'user', initialTab = 'signup') => {
-  if (show) {
-    authModal.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-    
-    switchRole(initialRole);
-    
-    const roleElement = document.getElementById(`${initialRole}Section`);
-    if (roleElement) {
-        const tabId = initialTab === 'signup' ? `${initialRole}SignUpTab` : `${initialRole}SignInTab`;
-        const tabElement = document.getElementById(tabId);
-        if (tabElement) {
-            handleTabSwitch(tabElement);
-        }
-    }
-  } else {
-    authModal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-  }
-};
-
-const switchRole = (role) => {
-  formSections.forEach(section => {
-    section.classList.add('hidden');
-  });
-  document.getElementById(`${role}Section`).classList.remove('hidden');
-  
-  roleButtons.forEach(btn => {
-    if (btn.dataset.role === role) {
-      btn.classList.add('active');
+  // Navbar scroll effect
+  window.addEventListener("scroll", function () {
+    const navbar = document.getElementById("navbar");
+    if (window.scrollY > 50) {
+      navbar.classList.add("nav-scrolled");
     } else {
-      btn.classList.remove('active');
+      navbar.classList.remove("nav-scrolled");
     }
   });
-  
-  updateSubmitButtonText(role);
-};
 
-const handleTabSwitch = (tabElement) => {
-  const formId = tabElement.dataset.form;
-  const formElement = document.getElementById(formId);
-  const role = formId.startsWith('user') ? 'user' : formId.startsWith('staff') ? 'staff' : 'admin';
-  
-  const tabContainer = tabElement.parentNode;
-  tabContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  
-  tabElement.classList.add('active');
-
-  const formSection = tabElement.closest('.form-section');
-  formSection.querySelectorAll('form').forEach(f => f.classList.add('hidden'));
-
-  formElement.classList.remove('hidden');
-
-  // Reset OTP sections
-  document.getElementById(`${role}SignupOtpSection`)?.classList.add('hidden');
-  document.getElementById(`${role}LoginOtpSection`)?.classList.add('hidden');
-  
-  const isSignIn = formId.includes('SignIn');
-  
-  let currentLoginMethod = 'password';
-  if (isSignIn) {
-      const selectedBtn = document.querySelector(`#${role}Section .login-method-btn.selected`);
-      currentLoginMethod = selectedBtn ? selectedBtn.dataset.method : 'password';
-  }
-
-  const passwordFields = document.getElementById(`${role}PasswordFields`);
-  const otpFields = document.getElementById(`${role}OtpFields`);
-
-  if (isSignIn) {
-      if (currentLoginMethod === 'password') {
-          passwordFields?.classList.remove('hidden');
-          otpFields?.classList.add('hidden');
-      } else {
-          passwordFields?.classList.add('hidden');
-          otpFields?.classList.remove('hidden');
-          document.getElementById(`${role}LoginOtpSection`)?.classList.add('hidden');
+  // Mobile menu toggle
+  const mobileMenuButton = document.getElementById("mobile-menu-button");
+  if (mobileMenuButton) {
+    mobileMenuButton.addEventListener("click", function () {
+      const mobileMenu = document.getElementById("mobile-menu");
+      if (mobileMenu) {
+        mobileMenu.classList.toggle("hidden");
       }
+    });
   }
 
-  updateSubmitButtonText(role, isSignIn, currentLoginMethod);
-};
+  // Smooth scrolling for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener("click", function (e) {
+      e.preventDefault();
+      const targetId = this.getAttribute("href");
+      if (targetId === "#") return;
 
-const handleLoginMethodSwitch = (button) => {
-    const method = button.dataset.method;
-    const role = button.dataset.form;
+      const targetElement = document.querySelector(targetId);
+      if (targetElement) {
+        window.scrollTo({
+          top: targetElement.offsetTop - 80,
+          behavior: "smooth",
+        });
 
-    const container = button.parentNode;
-    container.querySelectorAll('.login-method-btn').forEach(btn => {
-        btn.classList.remove('selected');
+        // Close mobile menu if open
+        const mobileMenu = document.getElementById("mobile-menu");
+        if (mobileMenu) {
+          mobileMenu.classList.add("hidden");
+        }
+      }
     });
-    button.classList.add('selected');
+  });
 
-    const passwordFields = document.getElementById(`${role}PasswordFields`);
-    const otpFields = document.getElementById(`${role}OtpFields`);
-    const sendOtpBtn = document.getElementById(`${role}SendOtpBtn`);
+  // Section fade-in animation on scroll
+  const observerOptions = {
+    root: null,
+    rootMargin: "0px",
+    threshold: 0.1,
+  };
 
-    if (method === 'password') {
-        passwordFields?.classList.remove('hidden');
-        otpFields?.classList.add('hidden');
-        document.getElementById(`${role}LoginOtpSection`)?.classList.add('hidden');
-        if (sendOtpBtn) {
-            sendOtpBtn.classList.remove('hidden');
-        }
-    } else {
-        passwordFields?.classList.add('hidden');
-        otpFields?.classList.remove('hidden');
-        document.getElementById(`${role}LoginOtpSection`)?.classList.add('hidden');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("section-visible");
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll(".section-fade-in").forEach((section) => {
+    observer.observe(section);
+  });
+
+  // Authentication Modal Logic
+  const authModal = document.getElementById("authModal");
+  const closeAuthModal = document.getElementById("closeAuthModal");
+
+  // Open modal triggers - with null checks
+  const navLoginBtn = document.getElementById("navLoginBtn");
+  const navRegisterBtn = document.getElementById("navRegisterBtn");
+  const mobileLoginBtn = document.getElementById("mobileLoginBtn");
+  const mobileRegisterBtn = document.getElementById("mobileRegisterBtn");
+  const heroGetStartedBtn = document.getElementById("heroGetStartedBtn");
+  const ctaSignUpBtn = document.getElementById("ctaSignUpBtn");
+
+  // User type selection
+  const userBtn = document.getElementById("userBtn");
+  const staffBtn = document.getElementById("staffBtn");
+  const adminBtn = document.getElementById("adminBtn");
+
+  const userSection = document.getElementById("userSection");
+  const staffSection = document.getElementById("staffSection");
+  const adminSection = document.getElementById("adminSection");
+
+  // User authentication tabs
+  const userSignUpTab = document.getElementById("userSignUpTab");
+  const userSignInTab = document.getElementById("userSignInTab");
+  const userSignUpForm = document.getElementById("userSignUpForm");
+  const userSignInForm = document.getElementById("userSignInForm");
+  const userSubmitBtn = document.getElementById("userSubmitBtn");
+
+  // Staff authentication tabs
+  const staffSignUpTab = document.getElementById("staffSignUpTab");
+  const staffSignInTab = document.getElementById("staffSignInTab");
+  const staffSignUpForm = document.getElementById("staffSignUpForm");
+  const staffSignInForm = document.getElementById("staffSignInForm");
+  const staffSubmitBtn = document.getElementById("staffSubmitBtn");
+
+  // Admin authentication tabs
+  const adminSignInTab = document.getElementById("adminSignInTab");
+  const adminSignInForm = document.getElementById("adminSignInForm");
+  const adminSubmitBtn = document.getElementById("adminSubmitBtn");
+
+  // Function to open modal with specific user type and form
+  function openAuthModal(userType = "user", formType = "signup") {
+    if (!authModal) return;
+
+    authModal.classList.remove("hidden");
+    resetUserTypeButtons();
+    hideAllSections();
+
+    if (userType === "user") {
+      if (userBtn) userBtn.classList.add("active");
+      if (userSection) {
+        userSection.classList.remove("hidden");
+        userSection.classList.add("block");
+      }
+
+      if (formType === "signin" && userSignInTab) {
+        userSignInTab.click();
+      } else if (userSignUpTab) {
+        userSignUpTab.click();
+      }
+    } else if (userType === "staff") {
+      if (staffBtn) staffBtn.classList.add("active");
+      if (staffSection) {
+        staffSection.classList.remove("hidden");
+        staffSection.classList.add("block");
+      }
+
+      if (formType === "signin" && staffSignInTab) {
+        staffSignInTab.click();
+      } else if (staffSignUpTab) {
+        staffSignUpTab.click();
+      }
+    } else if (userType === "admin") {
+      if (adminBtn) adminBtn.classList.add("active");
+      if (adminSection) {
+        adminSection.classList.remove("hidden");
+        adminSection.classList.add("block");
+      }
     }
-    
-    updateSubmitButtonText(role, true, method);
-};
+  }
 
-const updateSubmitButtonText = (role, isSignIn = false, loginMethod = 'password') => {
-    const submitBtn = document.getElementById(`${role}SubmitBtn`);
-    if (!submitBtn) return;
+  // Function to reset all user type buttons
+  function resetUserTypeButtons() {
+    if (userBtn) userBtn.classList.remove("active");
+    if (staffBtn) staffBtn.classList.remove("active");
+    if (adminBtn) adminBtn.classList.remove("active");
+  }
 
-    let text;
-    let currentMethod = loginMethod;
-
-    if (isSignIn) {
-        if (loginMethod === 'otp') {
-            const otpSection = document.getElementById(`${role}LoginOtpSection`);
-            if (otpSection && !otpSection.classList.contains('hidden')) {
-                 text = 'VERIFY OTP & SIGN IN';
-                 currentMethod = 'otp';
-            } else {
-                 text = 'SIGN IN'; 
-                 currentMethod = 'otp';
-            }
-        } else {
-            text = 'SIGN IN';
-            currentMethod = 'password';
-        }
-    } else {
-        const otpSection = document.getElementById(`${role}SignupOtpSection`);
-        if (otpSection && !otpSection.classList.contains('hidden')) {
-            text = 'VERIFY OTP & COMPLETE SIGNUP';
-        } else {
-            text = role === 'user' ? 'SIGN UP' : 'REGISTER AS STAFF';
-        }
-        currentMethod = 'password';
+  // Function to hide all sections
+  function hideAllSections() {
+    if (userSection) {
+      userSection.classList.add("hidden");
+      userSection.classList.remove("block");
     }
-    
-    submitBtn.textContent = text;
-    submitBtn.dataset.form = isSignIn ? `${role}SignInForm` : `${role}SignUpForm`;
-    submitBtn.dataset.role = role;
-    submitBtn.dataset.method = currentMethod;
-};
+    if (staffSection) {
+      staffSection.classList.add("hidden");
+      staffSection.classList.remove("block");
+    }
+    if (adminSection) {
+      adminSection.classList.add("hidden");
+      adminSection.classList.remove("block");
+    }
+  }
 
-const setupOtpInputs = (containerId, submitBtnId) => {
+  // --- CORE FORM SUBMISSION LOGIC ---
+  async function handleFormSubmission(
+    formElement,
+    submitBtnElement,
+    endpoint,
+    successMessage,
+    isSignUp = false,
+    isStaff = false,
+    isOtpLogin = false
+  ) {
+    if (!formElement || !submitBtnElement) {
+      console.error("Form element or submit button not found");
+      return;
+    }
+
+    // Prevent double submission
+    const originalText = submitBtnElement.textContent;
+    submitBtnElement.disabled = true;
+    submitBtnElement.textContent = "Processing...";
+
+    // Prepare data structure for the backend
+    let payload = {};
+    let validationError = false;
+    
+    if (isSignUp && !isStaff) {
+      // User Signup - Use FormData for all fields
+      const formData = new FormData(formElement);
+      const data = Object.fromEntries(formData.entries());
+
+      console.log("🔍 User Signup Form data collected:", data);
+
+      // Password Mismatch Check
+      if (data.password !== data.confirmPassword) {
+        alert("Error: Passwords do not match.");
+        submitBtnElement.disabled = false;
+        submitBtnElement.textContent = originalText;
+        return;
+      }
+
+      // Client-side validation
+      if (!data.name || !data.email || !data.password || !data.phone) {
+        alert("Please fill all required fields");
+        submitBtnElement.disabled = false;
+        submitBtnElement.textContent = originalText;
+        return;
+      }
+
+      payload = {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        phone: data.phone,
+        street: data.street || "",
+        city: data.city || "",
+        state: data.state || "",
+        pincode: data.pincode || "",
+      };
+    } else if (!isSignUp && !isStaff) {
+      // User Sign In
+      if (isOtpLogin) {
+        // OTP Login - Only collect OTP fields
+        const otp = getOtpValue('userLoginOtpInputs');
+        const otpIdentifier = document.getElementById('userOtpIdentifier')?.value;
+
+        if (!otpIdentifier) {
+          alert("Please enter your email or phone number");
+          validationError = true;
+        } else if (!otp || otp.length !== 6) {
+          alert("Please enter a valid 6-digit OTP");
+          validationError = true;
+        }
+
+        if (validationError) {
+          submitBtnElement.disabled = false;
+          submitBtnElement.textContent = originalText;
+          return;
+        }
+
+        payload = {
+          identifier: otpIdentifier,
+          otp: otp
+        };
+        console.log("🔍 User OTP Login data:", payload);
+      } else {
+        // Password Login - Only collect password fields
+        const loginIdentifier = document.querySelector('#userSignInForm input[name="loginIdentifier"]')?.value;
+        const password = document.querySelector('#userSignInForm input[name="password"]')?.value;
+
+        if (!loginIdentifier || !password) {
+          alert("Please enter both email/phone and password");
+          submitBtnElement.disabled = false;
+          submitBtnElement.textContent = originalText;
+          return;
+        }
+
+        // FIXED: Use 'identifier' instead of 'email' for password login
+        payload = {
+          identifier: loginIdentifier,
+          password: password,
+        };
+        console.log("🔍 User Password Login data:", payload);
+      }
+    } else if (isStaff && isSignUp) {
+      // Staff Signup - Use FormData for all fields
+      const formData = new FormData(formElement);
+      const data = Object.fromEntries(formData.entries());
+
+      console.log("🔍 Staff Signup Form data collected:", data);
+
+      // Password Mismatch Check
+      if (data.password !== data.confirmPassword) {
+        alert("Error: Passwords do not match.");
+        submitBtnElement.disabled = false;
+        submitBtnElement.textContent = originalText;
+        return;
+      }
+
+      // Client-side validation
+      if (!data.name || !data.email || !data.staffId || !data.password || !data.phone) {
+        alert("Please fill all required fields");
+        submitBtnElement.disabled = false;
+        submitBtnElement.textContent = originalText;
+        return;
+      }
+
+      payload = {
+        name: data.name,
+        email: data.email,
+        staffId: data.staffId,
+        phone: data.phone,
+        password: data.password,
+      };
+    } else if (isStaff && !isSignUp) {
+      // Staff Sign In
+      if (isOtpLogin) {
+        // OTP Login - Only collect OTP fields
+        const otp = getOtpValue('staffLoginOtpInputs');
+        const otpIdentifier = document.getElementById('staffOtpIdentifier')?.value;
+
+        if (!otpIdentifier) {
+          alert("Please enter your Staff ID, email or phone number");
+          validationError = true;
+        } else if (!otp || otp.length !== 6) {
+          alert("Please enter a valid 6-digit OTP");
+          validationError = true;
+        }
+
+        if (validationError) {
+          submitBtnElement.disabled = false;
+          submitBtnElement.textContent = originalText;
+          return;
+        }
+
+        payload = {
+          identifier: otpIdentifier,
+          otp: otp
+        };
+        console.log("🔍 Staff OTP Login data:", payload);
+      } else {
+        // Password Login - Only collect password fields
+        const staffIdOrEmail = document.querySelector('#staffSignInForm input[name="staffIdOrEmail"]')?.value;
+        const password = document.querySelector('#staffSignInForm input[name="password"]')?.value;
+
+        if (!staffIdOrEmail || !password) {
+          alert("Please enter both Staff ID/Email and password");
+          submitBtnElement.disabled = false;
+          submitBtnElement.textContent = originalText;
+          return;
+        }
+
+        // FIXED: Use 'identifier' instead of 'staffIdOrEmail' for password login
+        payload = {
+          identifier: staffIdOrEmail,
+          password: password,
+        };
+        console.log("🔍 Staff Password Login data:", payload);
+      }
+    } else {
+      // Admin Sign In
+      if (isOtpLogin) {
+        // OTP Login - Only collect OTP fields
+        const otp = getOtpValue('adminLoginOtpInputs');
+        const otpIdentifier = document.getElementById('adminOtpIdentifier')?.value;
+
+        if (!otpIdentifier) {
+          alert("Please enter your Admin ID");
+          validationError = true;
+        } else if (!otp || otp.length !== 6) {
+          alert("Please enter a valid 6-digit OTP");
+          validationError = true;
+        }
+
+        if (validationError) {
+          submitBtnElement.disabled = false;
+          submitBtnElement.textContent = originalText;
+          return;
+        }
+
+        payload = {
+          identifier: otpIdentifier,
+          otp: otp
+        };
+        console.log("🔍 Admin OTP Login data:", payload);
+      } else {
+        // Password Login - Only collect password fields
+        const adminId = document.querySelector('#adminSignInForm input[name="adminId"]')?.value;
+        const password = document.querySelector('#adminSignInForm input[name="password"]')?.value;
+
+        if (!adminId || !password) {
+          alert("Please enter both Admin ID and password");
+          submitBtnElement.disabled = false;
+          submitBtnElement.textContent = originalText;
+          return;
+        }
+
+        // FIXED: Use 'identifier' instead of 'adminId' for password login
+        payload = {
+          identifier: adminId,
+          password: password,
+        };
+        console.log("🔍 Admin Password Login data:", payload);
+      }
+    }
+
+    const finalUrl = BASE_URL + endpoint;
+
+    console.log("SENDING REQUEST:");
+    console.log("URL:", finalUrl);
+    console.log("Method: POST");
+    console.log("Payload:", payload);
+    console.log("Is Signup:", isSignUp);
+    console.log("Is Staff:", isStaff);
+    console.log("Is OTP Login:", isOtpLogin);
+
+    try {
+      const response = await fetch(finalUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log("RESPONSE RECEIVED:");
+      console.log("Status:", response.status);
+      console.log("Status Text:", response.statusText);
+      console.log("OK:", response.ok);
+
+      const responseText = await response.text();
+      console.log("Raw Response Text:", responseText);
+
+      // Check if the server responded but with an error status
+      if (!response.ok) {
+        console.log("SERVER RETURNED ERROR STATUS");
+
+        let errorMessage = `Server returned status ${response.status}`;
+
+        if (responseText) {
+          try {
+            const errorResult = JSON.parse(responseText);
+            errorMessage =
+              errorResult.message ||
+              errorResult.error ||
+              JSON.stringify(errorResult);
+          } catch (e) {
+            errorMessage = `Server returned status ${response.status}: ${responseText}`;
+          }
+        }
+
+        console.log("Error Message:", errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // If we got here, response is OK (200-299)
+      console.log("SERVER RETURNED SUCCESS STATUS");
+
+      let result;
+      if (responseText) {
+        try {
+          result = JSON.parse(responseText);
+          console.log("Parsed JSON Result:", result);
+        } catch (e) {
+          console.error("Failed to parse JSON:", e);
+          throw new Error("Server returned invalid JSON response");
+        }
+      } else {
+        console.warn("Server returned empty response");
+        result = { message: "Empty response from server" };
+      }
+
+      console.log("SUCCESS - Processing result:", result);
+
+      // Handle successful authentication
+      handleSuccessfulAuth(result, formElement, endpoint, isSignUp, isStaff);
+      
+    } catch (error) {
+      console.error("SUBMISSION FAILED:");
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+
+      let userFriendlyMessage = error.message;
+
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        userFriendlyMessage =
+          "Network error: Cannot connect to server. Make sure the backend is running.";
+      } else if (error.message.includes("Failed to fetch")) {
+        userFriendlyMessage =
+          "Network error: Cannot connect to server. Check if the backend is running on port 3000.";
+      } else if (error.message.includes("CORS")) {
+        userFriendlyMessage =
+          "CORS error: Browser blocked the request. Check server CORS configuration.";
+      }
+
+      alert(`Error: ${userFriendlyMessage}`);
+    } finally {
+      submitBtnElement.disabled = false;
+      submitBtnElement.textContent = originalText;
+      console.log("Form submission process completed");
+    }
+  }
+
+  // Helper function to get OTP value from input fields
+  function getOtpValue(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return '';
+    
+    const inputs = container.querySelectorAll('.otp-input');
+    let otp = '';
+    inputs.forEach(input => {
+      otp += input.value || '';
+    });
+    return otp;
+  }
+
+  // Handle successful authentication
+  function handleSuccessfulAuth(result, formElement, endpoint, isSignUp, isStaff) {
+    // Check if this is an ADMIN login
+    if ((endpoint === "/api/admin/login" || endpoint === "/api/otp/login/admin") && result.accessToken) {
+      console.log("ADMIN LOGIN DETECTED - Storing admin token");
+      localStorage.setItem("adminToken", result.accessToken);
+      if (result.admin) {
+        localStorage.setItem("adminData", JSON.stringify(result.admin));
+      }
+      formElement.reset();
+      if (authModal) authModal.classList.add("hidden");
+
+      setTimeout(() => {
+        console.log("Redirecting to admin dashboard...");
+        window.location.href = "admin.html";
+      }, 500);
+    }
+    // Check if this is a USER login
+    else if (result.accessToken && result.user) {
+      console.log("USER LOGIN DETECTED - Storing user token and data");
+      localStorage.setItem("accessToken", result.accessToken);
+      localStorage.setItem("user", JSON.stringify(result.user));
+
+      formElement.reset();
+      if (authModal) authModal.classList.add("hidden");
+
+      setTimeout(() => {
+        console.log("Redirecting to user homepage...");
+        window.location.href = "home.html";
+      }, 500);
+    }
+    // Check if this is a STAFF login
+    else if ((endpoint === "/api/staff/login" || endpoint === "/api/otp/login/staff") && result.accessToken) {
+      console.log("STAFF LOGIN DETECTED - Storing staff token");
+      localStorage.setItem("staffToken", result.accessToken);
+      if (result.staff) {
+        localStorage.setItem("staffData", JSON.stringify(result.staff));
+      }
+      formElement.reset();
+      if (authModal) authModal.classList.add("hidden");
+
+      setTimeout(() => {
+        console.log("Redirecting to staff dashboard...");
+        window.location.href = "staff.html";
+      }, 500);
+    }
+    // Handle new response format with data object
+    else if (result.success && result.data) {
+      const { accessToken, user } = result.data;
+      
+      if (accessToken && user) {
+        console.log(`${user.role.toUpperCase()} LOGIN SUCCESS - Storing token and data`);
+        
+        // Store token and user data
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("user", JSON.stringify(user));
+        
+        // Store role-specific tokens
+        if (user.role === 'admin') {
+          localStorage.setItem("adminToken", accessToken);
+          localStorage.setItem("adminData", JSON.stringify(user));
+        } else if (user.role === 'staff') {
+          localStorage.setItem("staffToken", accessToken);
+          localStorage.setItem("staffData", JSON.stringify(user));
+        }
+        
+        formElement.reset();
+        if (authModal) authModal.classList.add("hidden");
+
+        // Redirect based on role
+        setTimeout(() => {
+          console.log(`Redirecting to ${user.role} dashboard...`);
+          if (user.role === 'user') {
+            window.location.href = "home.html";
+          } else if (user.role === 'staff') {
+            window.location.href = "staff.html";
+          } else if (user.role === 'admin') {
+            window.location.href = "admin.html";
+          }
+        }, 500);
+        return;
+      }
+    }
+    // Handle successful signups
+    else if (
+      isSignUp &&
+      result.message &&
+      result.message.toLowerCase().includes("success")
+    ) {
+      console.log("SIGNUP SUCCESSFUL");
+      formElement.reset();
+      if (authModal) authModal.classList.add("hidden");
+      setTimeout(() => {
+        alert("Registration successful! Please login with your credentials.");
+        if (isStaff) {
+          openAuthModal("staff", "signin");
+        } else {
+          openAuthModal("user", "signin");
+        }
+      }, 500);
+    }
+    // Generic success case
+    else if (result.message) {
+      console.log("OPERATION COMPLETED SUCCESSFULLY");
+      formElement.reset();
+      if (authModal) authModal.classList.add("hidden");
+      alert(result.message);
+    }
+    // Fallback
+    else {
+      console.warn("No specific success handler matched");
+      formElement.reset();
+      if (authModal) authModal.classList.add("hidden");
+      alert("Operation completed successfully");
+    }
+  }
+
+  // Event listeners for opening modal - with null checks
+  if (navLoginBtn) {
+    navLoginBtn.addEventListener("click", () =>
+      openAuthModal("user", "signin")
+    );
+  }
+
+  if (navRegisterBtn) {
+    navRegisterBtn.addEventListener("click", () =>
+      openAuthModal("user", "signup")
+    );
+  }
+
+  if (mobileLoginBtn) {
+    mobileLoginBtn.addEventListener("click", () => {
+      openAuthModal("user", "signin");
+      const mobileMenu = document.getElementById("mobile-menu");
+      if (mobileMenu) mobileMenu.classList.add("hidden");
+    });
+  }
+
+  if (mobileRegisterBtn) {
+    mobileRegisterBtn.addEventListener("click", () => {
+      openAuthModal("user", "signup");
+      const mobileMenu = document.getElementById("mobile-menu");
+      if (mobileMenu) mobileMenu.classList.add("hidden");
+    });
+  }
+
+  if (heroGetStartedBtn) {
+    heroGetStartedBtn.addEventListener("click", () =>
+      openAuthModal("user", "signup")
+    );
+  }
+
+  if (ctaSignUpBtn) {
+    ctaSignUpBtn.addEventListener("click", () =>
+      openAuthModal("user", "signup")
+    );
+  }
+
+  // Close modal
+  if (closeAuthModal) {
+    closeAuthModal.addEventListener("click", () => {
+      if (authModal) authModal.classList.add("hidden");
+    });
+  }
+
+  // Close modal when clicking outside
+  if (authModal) {
+    authModal.addEventListener("click", (e) => {
+      if (e.target === authModal) {
+        authModal.classList.add("hidden");
+      }
+    });
+  }
+
+  // User type button event listeners
+  if (userBtn) {
+    userBtn.addEventListener("click", () => {
+      resetUserTypeButtons();
+      userBtn.classList.add("active");
+      hideAllSections();
+      if (userSection) {
+        userSection.classList.remove("hidden");
+        userSection.classList.add("block");
+      }
+      if (userSignUpTab) userSignUpTab.click();
+    });
+  }
+
+  if (staffBtn) {
+    staffBtn.addEventListener("click", () => {
+      resetUserTypeButtons();
+      staffBtn.classList.add("active");
+      hideAllSections();
+      if (staffSection) {
+        staffSection.classList.remove("hidden");
+        staffSection.classList.add("block");
+      }
+      if (staffSignUpTab) staffSignUpTab.click();
+    });
+  }
+
+  if (adminBtn) {
+    adminBtn.addEventListener("click", () => {
+      resetUserTypeButtons();
+      adminBtn.classList.add("active");
+      hideAllSections();
+      if (adminSection) {
+        adminSection.classList.remove("hidden");
+        adminSection.classList.add("block");
+      }
+    });
+  }
+
+  // User authentication tab switching
+  if (userSignUpTab) {
+    userSignUpTab.addEventListener("click", () => {
+      userSignUpTab.classList.add("active");
+      if (userSignInTab) userSignInTab.classList.remove("active");
+      if (userSignUpForm) userSignUpForm.classList.remove("hidden");
+      if (userSignInForm) userSignInForm.classList.add("hidden");
+      if (userSubmitBtn) userSubmitBtn.textContent = "SIGN UP";
+      // Reset login method to password when switching tabs
+      resetLoginMethod('user');
+    });
+  }
+
+  if (userSignInTab) {
+    userSignInTab.addEventListener("click", () => {
+      userSignInTab.classList.add("active");
+      if (userSignUpTab) userSignUpTab.classList.remove("active");
+      if (userSignInForm) userSignInForm.classList.remove("hidden");
+      if (userSignUpForm) userSignUpForm.classList.add("hidden");
+      if (userSubmitBtn) userSubmitBtn.textContent = "SIGN IN";
+      // Reset login method to password when switching tabs
+      resetLoginMethod('user');
+    });
+  }
+
+  // Staff authentication tab switching
+  if (staffSignUpTab) {
+    staffSignUpTab.addEventListener("click", () => {
+      staffSignUpTab.classList.add("active");
+      if (staffSignInTab) staffSignInTab.classList.remove("active");
+      if (staffSignUpForm) staffSignUpForm.classList.remove("hidden");
+      if (staffSignInForm) staffSignInForm.classList.add("hidden");
+      if (staffSubmitBtn) staffSubmitBtn.textContent = "REGISTER AS STAFF";
+      // Reset login method to password when switching tabs
+      resetLoginMethod('staff');
+    });
+  }
+
+  if (staffSignInTab) {
+    staffSignInTab.addEventListener("click", () => {
+      staffSignInTab.classList.add("active");
+      if (staffSignUpTab) staffSignUpTab.classList.remove("active");
+      if (staffSignInForm) staffSignInForm.classList.remove("hidden");
+      if (staffSignUpForm) staffSignUpForm.classList.add("hidden");
+      if (staffSubmitBtn) staffSubmitBtn.textContent = "STAFF LOGIN";
+      // Reset login method to password when switching tabs
+      resetLoginMethod('staff');
+    });
+  }
+
+  // Admin authentication tab switching
+  if (adminSignInTab) {
+    adminSignInTab.addEventListener("click", () => {
+      adminSignInTab.classList.add("active");
+      if (adminSignInForm) adminSignInForm.classList.remove("hidden");
+      // Reset login method to password when switching tabs
+      resetLoginMethod('admin');
+    });
+  }
+
+  // Reset login method to password
+  function resetLoginMethod(formType) {
+    const passwordBtn = document.querySelector(`.login-method-btn[data-form="${formType}"][data-method="password"]`);
+    const otpBtn = document.querySelector(`.login-method-btn[data-form="${formType}"][data-method="otp"]`);
+    
+    if (passwordBtn && otpBtn) {
+      passwordBtn.classList.add('selected');
+      otpBtn.classList.remove('selected');
+      
+      // Show password fields, hide OTP fields
+      if (formType === 'user') {
+        document.getElementById('userPasswordFields').classList.remove('hidden');
+        document.getElementById('userOtpFields').classList.add('hidden');
+        document.getElementById('userLoginOtpSection').classList.add('hidden');
+      } else if (formType === 'staff') {
+        document.getElementById('staffPasswordFields').classList.remove('hidden');
+        document.getElementById('staffOtpFields').classList.add('hidden');
+        document.getElementById('staffLoginOtpSection').classList.add('hidden');
+      } else if (formType === 'admin') {
+        document.getElementById('adminPasswordFields').classList.remove('hidden');
+        document.getElementById('adminOtpFields').classList.add('hidden');
+        document.getElementById('adminLoginOtpSection').classList.add('hidden');
+      }
+    }
+  }
+
+  // --- FORM SUBMISSION HANDLERS ---
+
+  // User Submission
+  if (userSubmitBtn) {
+    userSubmitBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const isSignUp =
+        userSignUpForm && !userSignUpForm.classList.contains("hidden");
+      const formElement = isSignUp ? userSignUpForm : userSignInForm;
+      
+      let endpoint, message, isOtpLogin = false;
+      
+      if (isSignUp) {
+        endpoint = "/api/users/signup";
+        message = "User Registration Successful";
+      } else {
+        // Check if OTP login is selected
+        const isOtpSelected = document.querySelector('.login-method-btn[data-form="user"][data-method="otp"]').classList.contains('selected');
+        if (isOtpSelected) {
+          endpoint = "/api/otp/login/user";
+          message = "User Login Successful";
+          isOtpLogin = true;
+        } else {
+          endpoint = "/api/users/login";
+          message = "User Login Successful";
+        }
+      }
+
+      if (formElement) {
+        handleFormSubmission(
+          formElement,
+          userSubmitBtn,
+          endpoint,
+          message,
+          isSignUp,
+          false,
+          isOtpLogin
+        );
+      }
+    });
+  }
+
+  // Staff Submission
+  if (staffSubmitBtn) {
+    staffSubmitBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const isSignUp =
+        staffSignUpForm && !staffSignUpForm.classList.contains("hidden");
+      const formElement = isSignUp ? staffSignUpForm : staffSignInForm;
+      
+      let endpoint, message, isOtpLogin = false;
+      
+      if (isSignUp) {
+        endpoint = "/api/staff/register";
+        message = "Staff Registration Successful";
+      } else {
+        // Check if OTP login is selected
+        const isOtpSelected = document.querySelector('.login-method-btn[data-form="staff"][data-method="otp"]').classList.contains('selected');
+        if (isOtpSelected) {
+          endpoint = "/api/otp/login/staff";
+          message = "Staff Login Successful";
+          isOtpLogin = true;
+        } else {
+          endpoint = "/api/staff/login";
+          message = "Staff Login Successful";
+        }
+      }
+
+      if (formElement) {
+        handleFormSubmission(
+          formElement,
+          staffSubmitBtn,
+          endpoint,
+          message,
+          isSignUp,
+          true,
+          isOtpLogin
+        );
+      }
+    });
+  }
+
+  // Admin Submission
+  if (adminSubmitBtn) {
+    adminSubmitBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      
+      let endpoint, message, isOtpLogin = false;
+      
+      // Check if OTP login is selected
+      const isOtpSelected = document.querySelector('.login-method-btn[data-form="admin"][data-method="otp"]').classList.contains('selected');
+      if (isOtpSelected) {
+        endpoint = "/api/otp/login/admin";
+        message = "Admin Login Successful";
+        isOtpLogin = true;
+      } else {
+        endpoint = "/api/admin/login";
+        message = "Admin Login Successful";
+      }
+
+      if (adminSignInForm) {
+        handleFormSubmission(
+          adminSignInForm,
+          adminSubmitBtn,
+          endpoint,
+          message,
+          false,
+          false,
+          isOtpLogin
+        );
+      }
+    });
+  }
+
+  function checkLoginAndRedirect() {
+    const accessToken = localStorage.getItem("accessToken");
+    const userData = localStorage.getItem("user");
+
+    if (accessToken && userData) {
+      const user = JSON.parse(userData);
+      console.log("User already logged in. Redirecting...");
+      
+      if (user.role === 'user') {
+        window.location.href = "home.html";
+      } else if (user.role === 'staff') {
+        window.location.href = "staff.html";
+      } else if (user.role === 'admin') {
+        window.location.href = "admin.html";
+      }
+    }
+  }
+
+  // Check login status on page load
+  checkLoginAndRedirect();
+
+  // OTP Input Handling
+  function setupOtpInputs(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const inputs = container.querySelectorAll('.otp-input');
-    
+    const inputs = container.querySelectorAll(".otp-input");
+
     inputs.forEach((input, index) => {
-        input.value = ''; 
+      input.addEventListener("input", (e) => {
+        // Only allow numbers
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
         
-        input.addEventListener('input', (e) => {
-            const value = e.target.value.replace(/[^0-9]/g, '');
-            e.target.value = value;
-            
-            if (value.length === 1 && index < inputs.length - 1) {
-                inputs[index + 1].focus();
-            } else if (value.length === 1 && index === inputs.length - 1) {
-                 if (getOtpValue(containerId).length === 6) {
-                     const submitBtn = document.getElementById(submitBtnId);
-                     if (submitBtn && submitBtn.textContent.includes('VERIFY')) {
-                         submitBtn.click();
-                     }
-                 }
-            }
-        });
+        if (e.target.value.length === 1 && index < inputs.length - 1) {
+          inputs[index + 1].focus();
+        }
+        
+        // Auto-submit when all OTP digits are entered
+        const allFilled = Array.from(inputs).every(input => input.value.length === 1);
+        if (allFilled && containerId.includes('Login')) {
+          // Auto-submit OTP login forms
+          const formType = containerId.replace('LoginOtpInputs', '').toLowerCase();
+          if (formType === 'user' && userSubmitBtn && !userSignUpForm.classList.contains('hidden')) {
+            userSubmitBtn.click();
+          } else if (formType === 'staff' && staffSubmitBtn && !staffSignUpForm.classList.contains('hidden')) {
+            staffSubmitBtn.click();
+          } else if (formType === 'admin' && adminSubmitBtn) {
+            adminSubmitBtn.click();
+          }
+        }
+      });
 
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
-                inputs[index - 1].focus();
-            }
-        });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !e.target.value && index > 0) {
+          inputs[index - 1].focus();
+        }
+      });
+
+      input.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const pasteData = e.clipboardData.getData('text').replace(/[^0-9]/g, '');
+        if (pasteData.length === 6) {
+          const digits = pasteData.split('');
+          inputs.forEach((input, i) => {
+            if (i < 6) input.value = digits[i] || '';
+          });
+          if (index < 5) inputs[5].focus();
+        }
+      });
     });
-    if(inputs.length > 0) inputs[0].focus();
-};
-
-const getOtpValue = (containerId) => {
-    const container = document.getElementById(containerId);
-    if (!container) return "";
-    return Array.from(container.querySelectorAll('.otp-input')).map(input => input.value).join('');
-};
-
-/**
- * FIXED: Role-based redirect logic
- */
-const handleAuthSuccess = (response, role) => {
-    const successMessage = `${role.toUpperCase()} Authentication successful!`;
-    
-    if (response.data?.accessToken) {
-        localStorage.setItem('authToken', response.data.accessToken);
-    }
-    
-    toggleModal(false);
-    showTemporaryMessage(successMessage);
-    
-    try {
-        localStorage.setItem('userRole', role);
-    } catch (e) {
-        console.error('Storage error:', e);
-    }
-    
-    // FIXED: Role-based redirect
-    setTimeout(() => {
-        let redirectUrl = 'home.html'; // default
-        
-        if (role === 'admin') {
-            redirectUrl = 'admin.html';
-        } else if (role === 'staff') {
-            redirectUrl = 'staff.html';
-        } else if (role === 'user') {
-            redirectUrl = 'home.html';
-        }
-        
-        console.log(`Redirecting ${role} to ${redirectUrl}`);
-        window.location.replace(redirectUrl);
-    }, 150);
-};
-
-/**
- * FIXED: Extract form data properly for sign-in
- */
-const getSignInCredentials = (form, role) => {
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    
-    let identifier, password;
-    
-    if (role === 'user') {
-        identifier = data.loginIdentifier;
-        password = data.password;
-    } else if (role === 'staff') {
-        identifier = data.staffIdOrEmail;
-        password = data.password;
-    } else if (role === 'admin') {
-        identifier = data.adminId;
-        password = data.password;
-    }
-    
-    return { identifier, password };
-};
-
-const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    const submitBtn = e.currentTarget;
-    const formId = submitBtn.dataset.form;
-    const role = submitBtn.dataset.role;
-    const method = submitBtn.dataset.method;
-    const form = document.getElementById(formId);
-
-    console.log('[AUTH] handleSubmit called', { formId, role, method });
-
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-    
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-
-    const isSignup = formId.includes('SignUp');
-    const otpSection = document.getElementById(isSignup ? `${role}SignupOtpSection` : `${role}LoginOtpSection`);
-    const isVerifying = submitBtn.textContent.includes('VERIFY OTP'); 
-
-    try {
-        if (isSignup) {
-            // SIGNUP LOGIC (unchanged)
-            const identifier = data.email || data.phone;
-            if (!identifier) {
-                showTemporaryMessage("Email or Phone is required to register.");
-                return;
-            }
-
-            const hasPassword = !!data.password || !!data.confirmPassword;
-            if (!isVerifying && hasPassword) {
-                if (data.password !== data.confirmPassword) {
-                    showTemporaryMessage("Passwords do not match!");
-                    return;
-                }
-
-                const registrationData = {
-                    name: data.name,
-                    email: data.email,
-                    phone: data.phone,
-                    password: data.password,
-                    ...(role === 'user' && {
-                        street: data.street,
-                        city: data.city,
-                        state: data.state,
-                        pincode: data.pincode
-                    }),
-                    ...(role === 'staff' && {
-                        staffId: data.staffId
-                    })
-                };
-
-                let signupResponse;
-                try {
-                    if (role === 'user') {
-                        signupResponse = await apiService.userSignUp(registrationData);
-                    } else {
-                        signupResponse = await apiService.staffSignUp(registrationData);
-                    }
-                } catch (err) {
-                    console.error('Signup error:', err);
-                    showTemporaryMessage('Signup failed. Please try again.');
-                    return;
-                }
-
-                if (signupResponse?.success) {
-                    handleAuthSuccess(signupResponse, role);
-                    form.reset();
-                } else {
-                    showTemporaryMessage(signupResponse?.message || 'Registration failed');
-                }
-
-                return;
-            }
-
-            // OTP Signup flow
-            if (!isVerifying) {
-                console.log(`[${role.toUpperCase()} SIGNUP] Sending OTP to ${identifier}...`);
-                const otpResponse = await apiService.sendOTP(identifier, role, 'signup');
-
-                if (otpResponse.success) {
-                    otpSection.classList.remove('hidden');
-                    updateSubmitButtonText(role, false);
-                    setupOtpInputs(`${role}SignupOtpInputs`, `${role}SubmitBtn`);
-                    showTemporaryMessage("OTP sent! Check your email/phone.");
-                } else {
-                    showTemporaryMessage(otpResponse.message || "Failed to send OTP. Check server logs.");
-                }
-
-            } else if (isVerifying) {
-                const otp = getOtpValue(`${role}SignupOtpInputs`);
-                if (otp.length !== 6) {
-                    showTemporaryMessage("Please enter the full 6-digit OTP.");
-                    return;
-                }
-
-                console.log(`[${role.toUpperCase()} SIGNUP] Verifying OTP: ${otp}`);
-                const verifyResponse = await apiService.verifyOTP(identifier, otp, role, 'signup');
-
-                if (verifyResponse.success) {
-                    const registrationData = {
-                        name: data.name,
-                        email: data.email,
-                        phone: data.phone,
-                        otp: otp,
-                        ...(role === 'user' && {
-                            street: data.street,
-                            city: data.city,
-                            state: data.state,
-                            pincode: data.pincode
-                        }),
-                        ...(role === 'staff' && {
-                            staffId: data.staffId
-                        })
-                    };
-
-                    let finalRegistrationResponse;
-                    if (role === 'user') {
-                        finalRegistrationResponse = await apiService.userSignUpWithOTP(registrationData);
-                    } else {
-                        finalRegistrationResponse = await apiService.staffSignUp(registrationData);
-                    }
-
-                    if (finalRegistrationResponse.success) {
-                        handleAuthSuccess(finalRegistrationResponse, role);
-                        form.reset();
-                        otpSection.classList.add('hidden');
-                    } else {
-                        showTemporaryMessage(finalRegistrationResponse.message || "Registration failed");
-                    }
-                } else {
-                    showTemporaryMessage(verifyResponse.message || "Invalid OTP");
-                }
-            }
-
-        } else {
-            // SIGN IN LOGIC - FIXED
-            
-            if (method === 'password') {
-                // FIXED: Get credentials properly
-                const credentials = getSignInCredentials(form, role);
-                
-                if (!credentials.identifier || !credentials.password) {
-                     showTemporaryMessage("Please enter both identifier and password.");
-                     return;
-                }
-
-                console.log('[AUTH] Password sign-in attempt', { role, identifier: credentials.identifier });
-
-                let loginResponse;
-                try {
-                    if (role === 'user') {
-                        loginResponse = await apiService.userSignIn(credentials);
-                    } else if (role === 'staff') {
-                        loginResponse = await apiService.staffSignIn(credentials);
-                    } else if (role === 'admin') {
-                        loginResponse = await apiService.adminSignIn(credentials);
-                    }
-                } catch (err) {
-                    console.error('Password sign-in error:', err);
-                    showTemporaryMessage('Network error during sign-in.');
-                    return;
-                }
-
-                console.log('[AUTH] Login response:', loginResponse);
-
-                if (loginResponse?.success) {
-                    handleAuthSuccess(loginResponse, role);
-                    form.reset();
-                } else {
-                    showTemporaryMessage(loginResponse?.message || "Login failed. Check your credentials.");
-                }
-
-            } else if (method === 'otp') {
-                // OTP SIGN IN
-                const identifier = document.getElementById(`${role}OtpIdentifier`).value;
-
-                if (submitBtn.textContent.includes('SEND OTP')) {
-                    showTemporaryMessage("Please use the 'Send OTP' button next to the input.");
-                    return;
-
-                } else if (submitBtn.textContent.includes('VERIFY OTP')) {
-                    const otp = getOtpValue(`${role}LoginOtpInputs`);
-                    if (otp.length !== 6) {
-                        showTemporaryMessage("Please enter the full 6-digit OTP.");
-                        return;
-                    }
-                    
-                    let loginResponse;
-                    if (role === 'user') {
-                        loginResponse = await apiService.userLoginWithOTP(identifier, otp);
-                    } else if (role === 'staff') {
-                        loginResponse = await apiService.staffLoginWithOTP(identifier, otp);
-                    } else {
-                        loginResponse = await apiService.adminLoginWithOTP(identifier, otp);
-                    }
-                    
-                    if (loginResponse.success) {
-                        handleAuthSuccess(loginResponse, role);
-                        form.reset();
-                    } else {
-                        showTemporaryMessage(loginResponse.message || "Invalid OTP");
-                    }
-                }
-                
-                if (!isVerifying && !document.getElementById(`${role}LoginOtpSection`).classList.contains('hidden')) {
-                     console.warn("OTP submit attempted without verification step.");
-                     return;
-                }
-            }
-        }
-    } catch (error) {
-        console.error('API Error:', error);
-        showTemporaryMessage("Network error. Please try again.");
-    }
-};
-
-const showTemporaryMessage = (message) => {
-  const msgDiv = document.createElement('div');
-  msgDiv.className = 'fixed top-4 right-4 bg-resolve-teal text-white p-4 rounded-xl shadow-2xl z-[100] transition-transform duration-500 transform translate-x-full';
-  msgDiv.textContent = message;
-  document.body.appendChild(msgDiv);
-
-  setTimeout(() => {
-      msgDiv.classList.remove('translate-x-full');
-      msgDiv.style.transform = 'translateX(0)';
-  }, 10);
-
-  setTimeout(() => {
-      msgDiv.style.transform = 'translateX(120%)';
-      msgDiv.addEventListener('transitionend', () => msgDiv.remove());
-  }, 4000);
-};
-
-// --- Event Listeners ---
-
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log("Frontend initialized");
-    
-    try {
-        const health = await apiService.healthCheck();
-        console.log("Backend connection:", health);
-    } catch (error) {
-        console.error("Backend connection failed:", error);
-        showTemporaryMessage("Backend connection failed. Please make sure the server is running.");
-    }
-});
-
-mobileMenuButton.addEventListener('click', () => {
-    mobileMenu.classList.toggle('hidden');
-});
-
-window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-        navbar.classList.add('scrolled-nav');
-        navbar.classList.remove('bg-white', 'shadow-md');
-    } else {
-        navbar.classList.remove('scrolled-nav');
-        navbar.classList.add('bg-white', 'shadow-md');
-    }
-});
-
-closeAuthModal.addEventListener('click', () => toggleModal(false));
-authModal.addEventListener('click', (e) => {
-  if (e.target.id === 'authModal') {
-    toggleModal(false);
   }
-});
 
-navButtons.forEach(btn => {
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-      const isRegister = btn.id.includes('Register') || btn.id.includes('hero');
-      toggleModal(true, 'user', isRegister ? 'signup' : 'signin');
+  // Setup OTP inputs for all sections
+  setupOtpInputs("userSignupOtpInputs");
+  setupOtpInputs("userLoginOtpInputs");
+  setupOtpInputs("staffSignupOtpInputs");
+  setupOtpInputs("staffLoginOtpInputs");
+  setupOtpInputs("adminLoginOtpInputs");
+
+  // Login Method Selection
+  document.querySelectorAll(".login-method-btn").forEach((btn) => {
+    btn.addEventListener("click", function () {
+      const formType = this.getAttribute("data-form");
+      const method = this.getAttribute("data-method");
+
+      // Update selected state
+      document
+        .querySelectorAll(`.login-method-btn[data-form="${formType}"]`)
+        .forEach((b) => {
+          b.classList.remove("selected");
+        });
+      this.classList.add("selected");
+
+      // Show/hide appropriate fields
+      if (formType === "user") {
+        document
+          .getElementById("userPasswordFields")
+          .classList.toggle("hidden", method !== "password");
+        document
+          .getElementById("userOtpFields")
+          .classList.toggle("hidden", method !== "otp");
+        // Reset OTP section when switching methods
+        if (method === "password") {
+          document.getElementById("userLoginOtpSection").classList.add("hidden");
+        }
+      } else if (formType === "staff") {
+        document
+          .getElementById("staffPasswordFields")
+          .classList.toggle("hidden", method !== "password");
+        document
+          .getElementById("staffOtpFields")
+          .classList.toggle("hidden", method !== "otp");
+        // Reset OTP section when switching methods
+        if (method === "password") {
+          document.getElementById("staffLoginOtpSection").classList.add("hidden");
+        }
+      } else if (formType === "admin") {
+        document
+          .getElementById("adminPasswordFields")
+          .classList.toggle("hidden", method !== "password");
+        document
+          .getElementById("adminOtpFields")
+          .classList.toggle("hidden", method !== "otp");
+        // Reset OTP section when switching methods
+        if (method === "password") {
+          document.getElementById("adminLoginOtpSection").classList.add("hidden");
+        }
+      }
+    });
   });
-});
 
-const ctaSignUpBtn = document.getElementById('ctaSignUpBtn');
-if (ctaSignUpBtn) {
-        ctaSignUpBtn.addEventListener('click', () => toggleModal(true, 'user', 'signup'));
-}
+  // Send OTP Button Handlers
+  document.querySelectorAll('[id$="SendOtpBtn"]').forEach((btn) => {
+    btn.addEventListener("click", async function () {
+      const formType = this.id.replace("SendOtpBtn", "").toLowerCase();
+      const identifierInput = document.getElementById(
+        `${formType}OtpIdentifier`
+      );
 
-[
-    { id: 'userSendOtpBtn', role: 'user' },
-    { id: 'staffSendOtpBtn', role: 'staff' },
-    { id: 'adminSendOtpBtn', role: 'admin' }
-].forEach(({ id, role }) => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.addEventListener('click', async () => {
-        const identifierInput = document.getElementById(`${role}OtpIdentifier`);
-        const identifier = identifierInput?.value?.trim();
-        if (!identifier) {
-            showTemporaryMessage('Please enter your email or phone number');
-            return;
+      if (!identifierInput || !identifierInput.value) {
+        alert("Please enter your email or phone number");
+        return;
+      }
+
+      // Disable button to prevent multiple clicks
+      this.disabled = true;
+      const originalText = this.innerHTML;
+      this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+
+      try {
+        // Send OTP request to backend using the correct endpoint
+        const response = await fetch(`${BASE_URL}/api/otp/request`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            identifier: identifierInput.value,
+            purpose: "login" // Specify the purpose for OTP
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          alert(result.message || `OTP sent to ${identifierInput.value}`);
+          
+          // Show OTP input section
+          document
+            .getElementById(`${formType}LoginOtpSection`)
+            .classList.remove("hidden");
+        } else {
+          const error = await response.json();
+          alert(error.message || "Failed to send OTP. Please try again.");
         }
-
-        try {
-            const resp = await apiService.sendOTP(identifier, role, 'login');
-            if (resp.success) {
-                const otpSection = document.getElementById(`${role}LoginOtpSection`);
-                if (otpSection) otpSection.classList.remove('hidden');
-
-                updateSubmitButtonText(role, true, 'otp');
-                setupOtpInputs(`${role}LoginOtpInputs`, `${role}SubmitBtn`);
-                btn.classList.add('hidden'); 
-                showTemporaryMessage('OTP sent! Check your email/phone.');
-            } else {
-                showTemporaryMessage(resp.message || 'Failed to send OTP');
-            }
-        } catch (err) {
-            console.error('Send OTP error:', err);
-            showTemporaryMessage('Network error. Could not send OTP.');
-        }
+      } catch (error) {
+        console.error("Error sending OTP:", error);
+        alert("Network error: Failed to send OTP. Please check your connection.");
+      } finally {
+        // Re-enable button
+        this.disabled = false;
+        this.innerHTML = originalText;
+      }
     });
-});
-
-roleButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    switchRole(btn.dataset.role);
   });
-});
 
-[...userTabs, ...staffTabs].forEach(tab => {
-    if (tab) tab.addEventListener('click', (e) => handleTabSwitch(e.currentTarget));
-});
+  // Resend OTP Button Handlers
+  document.querySelectorAll('[id*="Resend"]').forEach((btn) => {
+    btn.addEventListener("click", async function () {
+      const formType = this.id.includes('user') ? 'user' : 
+                      this.id.includes('staff') ? 'staff' : 'admin';
+      const identifierInput = document.getElementById(
+        `${formType}OtpIdentifier`
+      );
 
-loginMethodButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => handleLoginMethodSwitch(e.currentTarget));
-});
+      if (!identifierInput || !identifierInput.value) {
+        alert("Please enter your email or phone number first");
+        return;
+      }
 
-document.querySelectorAll('[id$="SubmitBtn"]').forEach(btn => {
-    btn.addEventListener('click', handleSubmit);
-});
+      // Disable button temporarily
+      this.disabled = true;
+      const originalText = this.innerHTML;
+      this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Resending...';
 
-document.querySelectorAll('[id^="userResend"], [id^="staffResend"], [id^="adminResend"]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        const role = btn.id.includes('user') ? 'user' : btn.id.includes('staff') ? 'staff' : 'admin';
-        const isSignup = btn.id.includes('Signup');
-        
-        let identifier;
-        if (isSignup) {
-            identifier = document.getElementById(`${role}SignupEmail`)?.value;
+      try {
+        // Resend OTP request to backend
+        const response = await fetch(`${BASE_URL}/api/otp/resend`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            identifier: identifierInput.value
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          alert(result.message || "OTP has been resent");
         } else {
-            identifier = document.getElementById(`${role}OtpIdentifier`)?.value;
+          const error = await response.json();
+          alert(error.message || "Failed to resend OTP. Please try again.");
         }
-        
-        if (identifier) {
-            const purpose = isSignup ? 'signup' : 'login';
-            const response = await apiService.resendOTP(identifier, role, purpose);
-            if (response.success) {
-                showTemporaryMessage("OTP resent successfully!");
-            } else {
-                showTemporaryMessage(response.message || "Failed to resend OTP");
-            }
-        } else {
-            showTemporaryMessage("Please enter your email/phone first");
-        }
+      } catch (error) {
+        console.error("Error resending OTP:", error);
+        alert("Network error: Failed to resend OTP. Please check your connection.");
+      } finally {
+        // Re-enable button after 30 seconds to prevent spam
+        setTimeout(() => {
+          this.disabled = false;
+          this.innerHTML = originalText;
+        }, 30000);
+      }
     });
-});
+  });
 
-document.querySelectorAll('[id$="ForgotPassword"]').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        showTemporaryMessage("Password reset feature coming soon!");
+  // Forgot Password Handlers
+  document.querySelectorAll('[id*="ForgotPassword"]').forEach((link) => {
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+      alert(
+        "Password reset instructions will be sent to your registered email"
+      );
     });
-});
+  });
 
-const contactForm = document.getElementById('contactForm');
-if (contactForm) {
-    contactForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(e.target);
-        const contactData = Object.fromEntries(formData.entries());
-        
-        console.log("Contact form data:", contactData);
-        showTemporaryMessage("Thank you! Your message has been received.");
-        e.target.reset();
-    });
-}
+  // Debug info
+  console.log("TOKEN DEBUG INFO:");
+  console.log("adminToken:", localStorage.getItem("adminToken"));
+  console.log("accessToken:", localStorage.getItem("accessToken")); 
+  console.log("staffToken:", localStorage.getItem("staffToken"));
+  console.log("user:", localStorage.getItem("user"));
+  console.log("adminData:", localStorage.getItem("adminData"));
+}); // END OF DOMContentLoaded
