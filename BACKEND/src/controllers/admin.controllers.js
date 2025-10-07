@@ -1,9 +1,9 @@
 import Admin from "../models/Admin.models.js";
+import bcrypt from "bcryptjs"; // ADD THIS IMPORT
+import jwt from "jsonwebtoken"; // ADD THIS IMPORT
 
-// FIXED: Accept 'identifier' instead of 'adminId'
 export const adminLogin = async(req, res) => {
     try {
-        // Frontend sends 'identifier' and 'password'
         const { identifier, password } = req.body;
         
         console.log('[ADMIN LOGIN] Received:', { identifier, password: '***' });
@@ -46,18 +46,17 @@ export const adminLogin = async(req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
         
+        // FIXED RESPONSE FORMAT - Match what frontend expects
         res.status(200).json({
             success: true,
             message: "Admin Login Successful",
-            data: {
-                accessToken,
-                admin: {
-                    id: admin._id,
-                    name: admin.name,
-                    email: admin.email,
-                    role: admin.role,
-                    permissions: admin.permissions
-                }
+            accessToken, // Direct accessToken (not nested in data)
+            admin: { // Direct admin object (not nested in data)
+                id: admin._id,
+                name: admin.name,
+                email: admin.email,
+                role: admin.role,
+                permissions: admin.permissions
             }
         });
     } catch (err) {

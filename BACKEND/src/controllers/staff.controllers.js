@@ -7,7 +7,7 @@ export const staffRegister = async (req, res) => {
         const { name, email, password, phone, staffId } = req.body;
         if (!name || !email || !password || !staffId) {
             return res.status(400).json({
-                success: false, // ← ADD THIS
+                success: false,
                 message: "Please fill all required fields for staff registration."
             });
         }
@@ -15,7 +15,7 @@ export const staffRegister = async (req, res) => {
         const existingStaff = await Staff.findOne({ $or: [{ email }, { staffId }] });
         if (existingStaff) {
             return res.status(400).json({
-                success: false, // ← ADD THIS
+                success: false,
                 message: "Email or Staff ID already registered."
             });
         }
@@ -34,14 +34,14 @@ export const staffRegister = async (req, res) => {
         await newStaff.save();
         
         res.status(201).json({
-            success: true, // ← ADD THIS
+            success: true,
             message: "Staff registered successfully. Awaiting admin approval."
         });
         
     } catch (err) {
         console.error("Staff registration error:", err);
         res.status(500).json({
-            success: false, // ← ADD THIS
+            success: false,
             message: "Server Error during staff registration"
         });
     }
@@ -49,9 +49,10 @@ export const staffRegister = async (req, res) => {
 
 export const staffLogin = async (req, res) => {
     try {
-        const { staffIdOrEmail, password } = req.body; 
+        // FIX: Accept 'identifier' instead of 'staffIdOrEmail' to match frontend
+        const { identifier, password } = req.body; 
         
-        if (!staffIdOrEmail || !password) {
+        if (!identifier || !password) {
             return res.status(400).json({ 
                 success: false,
                 message: "Staff ID/Email and password are required" 
@@ -59,7 +60,7 @@ export const staffLogin = async (req, res) => {
         }
         
         const staff = await Staff.findOne({
-            $or: [{ email: staffIdOrEmail }, { staffId: staffIdOrEmail }], 
+            $or: [{ email: identifier }, { staffId: identifier }], 
         });
         
         if (!staff) {
@@ -92,13 +93,13 @@ export const staffLogin = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000, 
         });
         
-        // RETURN THE RESPONSE IN THE FORMAT FRONTEND EXPECTS
+        // FIXED RESPONSE FORMAT - Match what frontend expects
         res.status(200).json({ 
-            success: true, // ← ADD THIS
+            success: true,
             message: "Staff Login Successful", 
-            accessToken,
-            staff: {
-                _id: staff._id, // ← CHANGE FROM 'id' TO '_id'
+            accessToken, // Direct accessToken
+            staff: { // Direct staff object
+                _id: staff._id,
                 name: staff.name,
                 role: staff.role,
                 staffId: staff.staffId,

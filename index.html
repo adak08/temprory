@@ -649,7 +649,7 @@
                   type="text"
                   placeholder="Staff ID or Email"
                   class="w-full p-3 rounded-xl form-input mb-4"
-                  name="staffIdOrEmail"
+                  name="identifier"
                   required
                 />
                 <input
@@ -663,7 +663,14 @@
 
               <!-- OTP Login Fields -->
               <div id="staffOtpFields" class="hidden space-y-4">
-                <input type="text" placeholder="Staff ID, Email or Phone (for OTP)" class="w-full p-3 rounded-xl form-input" name="otpIdentifier" id="staffOtpIdentifier" required>
+                <input 
+                  type="text" 
+                  placeholder="Staff ID, Email or Phone (for OTP)" 
+                  class="w-full p-3 rounded-xl form-input" 
+                  name="identifier" 
+                  id="staffOtpIdentifier" 
+                  required
+                />
                 
                 <button type="button" id="staffSendOtpBtn" class="w-full bg-gray-100 text-gray-800 font-semibold py-3 rounded-xl hover:bg-gray-200 transition-colors">
                   <i class="fas fa-paper-plane mr-2"></i>Send OTP
@@ -727,13 +734,13 @@
                 </div>
               </div>
 
-              <!-- Password Login Fields -->
+             <!-- Password Login Fields -->
               <div id="adminPasswordFields">
                 <input
                   type="text"
                   placeholder="Admin ID (Email or Phone)"
                   class="w-full p-3 rounded-xl form-input mb-4"
-                  name="adminId"
+                  name="identifier"
                   required
                 />
                 <input
@@ -747,7 +754,14 @@
 
               <!-- OTP Login Fields -->
               <div id="adminOtpFields" class="hidden space-y-4">
-                <input type="text" placeholder="Admin ID (Email or Phone)" class="w-full p-3 rounded-xl form-input" name="otpIdentifier" id="adminOtpIdentifier" required>
+                <input 
+                  type="text" 
+                  placeholder="Admin ID (Email or Phone)" 
+                  class="w-full p-3 rounded-xl form-input" 
+                  name="identifier" 
+                  id="adminOtpIdentifier" 
+                  required
+                />
                 
                 <button type="button" id="adminSendOtpBtn" class="w-full bg-gray-100 text-gray-800 font-semibold py-3 rounded-xl hover:bg-gray-200 transition-colors">
                   <i class="fas fa-paper-plane mr-2"></i>Send OTP

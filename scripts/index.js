@@ -307,9 +307,9 @@ document.addEventListener("DOMContentLoaded", function () {
       if (isOtpLogin) {
         // OTP Login - Only collect OTP fields
         const otp = getOtpValue('staffLoginOtpInputs');
-        const otpIdentifier = document.getElementById('staffOtpIdentifier')?.value;
+        const identifier = document.getElementById('staffOtpIdentifier')?.value;
 
-        if (!otpIdentifier) {
+        if (!identifier) {
           alert("Please enter your Staff ID, email or phone number");
           validationError = true;
         } else if (!otp || otp.length !== 6) {
@@ -324,25 +324,25 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         payload = {
-          identifier: otpIdentifier,
+          identifier: identifier,
           otp: otp
         };
         console.log("🔍 Staff OTP Login data:", payload);
       } else {
         // Password Login - Only collect password fields
-        const staffIdOrEmail = document.querySelector('#staffSignInForm input[name="staffIdOrEmail"]')?.value;
+        // FIX: Updated to look for 'identifier' field instead of 'staffIdOrEmail'
+        const identifier = document.querySelector('#staffSignInForm input[name="identifier"]')?.value;
         const password = document.querySelector('#staffSignInForm input[name="password"]')?.value;
 
-        if (!staffIdOrEmail || !password) {
+        if (!identifier || !password) {
           alert("Please enter both Staff ID/Email and password");
           submitBtnElement.disabled = false;
           submitBtnElement.textContent = originalText;
           return;
         }
 
-        // FIXED: Use 'identifier' instead of 'staffIdOrEmail' for password login
         payload = {
-          identifier: staffIdOrEmail,
+          identifier: identifier,
           password: password,
         };
         console.log("🔍 Staff Password Login data:", payload);
@@ -375,19 +375,24 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("🔍 Admin OTP Login data:", payload);
       } else {
         // Password Login - Only collect password fields
-        const adminId = document.querySelector('#adminSignInForm input[name="adminId"]')?.value;
-        const password = document.querySelector('#adminSignInForm input[name="password"]')?.value;
+        // FIX: Look for the correct input field names
+        const identifierInput = document.querySelector('#adminSignInForm input[name="adminId"]');
+        const passwordInput = document.querySelector('#adminSignInForm input[name="password"]');
+        
+        const identifier = identifierInput?.value;
+        const password = passwordInput?.value;
 
-        if (!adminId || !password) {
+        console.log("🔍 Admin Input Values:", { identifier, password }); // Debug log
+
+        if (!identifier || !password) {
           alert("Please enter both Admin ID and password");
           submitBtnElement.disabled = false;
           submitBtnElement.textContent = originalText;
           return;
         }
 
-        // FIXED: Use 'identifier' instead of 'adminId' for password login
         payload = {
-          identifier: adminId,
+          identifier: identifier,
           password: password,
         };
         console.log("🔍 Admin Password Login data:", payload);
@@ -821,7 +826,7 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         // Check if OTP login is selected
         const isOtpSelected = document.querySelector('.login-method-btn[data-form="user"][data-method="otp"]').classList.contains('selected');
-        if (isOtpSelected) {
+      if (isOtpSelected) {
           endpoint = "/api/otp/login/user";
           message = "User Login Successful";
           isOtpLogin = true;
