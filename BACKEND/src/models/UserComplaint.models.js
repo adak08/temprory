@@ -26,7 +26,7 @@ const userComplaintSchema=new mongoose.Schema({
     },
     location:{
         latitude:Number,
-        longitude:Numeber,
+        longitude:Number,
         address:String
     },
     images:[{

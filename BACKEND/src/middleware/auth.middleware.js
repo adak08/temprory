@@ -5,8 +5,12 @@ import User from "../models/User.models.js";
 import Staff from "../models/Staff.models.js";
 import Admin from "../models/Admin.models.js";
 
-// General authentication middleware
+/**
+ *  General Authentication Middleware
+ * Verifies JWT token, decodes role, and attaches user to req.user
+ */
 export const authMiddleware = asyncHandler(async (req, res, next) => {
+    // Get token from Authorization header or cookies
     const token = req.headers.authorization?.replace("Bearer ", "") || req.cookies?.accessToken;
 
     if (!token) {
@@ -14,80 +18,98 @@ export const authMiddleware = asyncHandler(async (req, res, next) => {
     }
 
     try {
+        // Verify access token
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        
-        // Find user from appropriate model based on role
+
         let user;
-        if (decoded.role === 'admin') {
-            user = await Admin.findById(decoded.id).select('-password');
-        } else if (decoded.role === 'staff') {
-            user = await Staff.findById(decoded.id).select('-password');
+        const role = decoded.role?.toLowerCase();
+
+        // Identify model based on role
+        if (["admin", "superadmin"].includes(role)) {
+            user = await Admin.findById(decoded.id).select("-password");
+        } else if (role === "staff") {
+            user = await Staff.findById(decoded.id).select("-password");
         } else {
-            user = await User.findById(decoded.id).select('-password');
+            user = await User.findById(decoded.id).select("-password");
         }
 
         if (!user) {
-            throw new ApiError(401, "Invalid authentication token");
+            throw new ApiError(401, "Invalid authentication token. User not found.");
         }
 
+        // Attach user and role to request
         req.user = user;
-        req.user.role = decoded.role;
+        req.user.role = role;
+
         next();
     } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            throw new ApiError(401, "Token has expired");
+        console.error("Authentication Error:", error);
+
+        if (error.name === "TokenExpiredError") {
+            throw new ApiError(401, "Access token has expired");
         }
-        throw new ApiError(401, "Invalid authentication token");
+
+        throw new ApiError(401, "Invalid or malformed authentication token");
     }
 });
 
-// Admin-only middleware
+/**
+ * 🧭 Admin-only Middleware
+ * Ensures only admins or superadmins can access route
+ */
 export const adminOnly = asyncHandler(async (req, res, next) => {
     if (!req.user) {
         throw new ApiError(401, "Authentication required");
     }
 
-    if (req.user.role !== 'admin') {
+    if (!["admin", "superadmin"].includes(req.user.role)) {
         throw new ApiError(403, "Admin access required");
     }
 
     next();
 });
 
-// Staff-only middleware
+/**
+ * 👷 Staff-only Middleware
+ */
 export const staffOnly = asyncHandler(async (req, res, next) => {
     if (!req.user) {
         throw new ApiError(401, "Authentication required");
     }
 
-    if (req.user.role !== 'staff') {
+    if (req.user.role !== "staff") {
         throw new ApiError(403, "Staff access required");
     }
 
     next();
 });
 
-// Admin or Staff middleware
+/**
+ * 🧩 Admin or Staff Access
+ */
 export const adminOrStaff = asyncHandler(async (req, res, next) => {
     if (!req.user) {
         throw new ApiError(401, "Authentication required");
     }
 
-    if (!['admin', 'staff'].includes(req.user.role)) {
+    if (!["admin", "superadmin", "staff"].includes(req.user.role)) {
         throw new ApiError(403, "Admin or Staff access required");
     }
 
     next();
 });
 
-// Check specific permissions (for admin)
+/**
+ * 🛡️ Check Specific Permission (for Admins)
+ * Example: router.post("/delete", authMiddleware, checkPermission("canDelete"), deleteHandler);
+ */
 export const checkPermission = (permission) => {
     return asyncHandler(async (req, res, next) => {
         if (!req.user) {
             throw new ApiError(401, "Authentication required");
         }
 
-        if (req.user.role === 'admin' && req.user.permissions) {
+        if (["admin", "superadmin"].includes(req.user.role) && req.user.permissions) {
             if (!req.user.permissions[permission]) {
                 throw new ApiError(403, `Permission denied: ${permission} required`);
             }
@@ -98,7 +120,10 @@ export const checkPermission = (permission) => {
     });
 };
 
-// Refresh token middleware
+/**
+ * ♻️ Refresh Token Middleware
+ * Verifies refresh token and issues a new access token
+ */
 export const refreshTokenMiddleware = asyncHandler(async (req, res, next) => {
     const refreshToken = req.cookies?.refreshToken;
 
@@ -107,21 +132,23 @@ export const refreshTokenMiddleware = asyncHandler(async (req, res, next) => {
     }
 
     try {
+        // Verify refresh token
         const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        
-        // Generate new access token
+
         const payload = { id: decoded.id, role: decoded.role };
-        const newAccessToken = jwt.sign(
-            payload,
-            process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: "15m" }
-        );
+
+        // Generate a new short-lived access token
+        const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+            expiresIn: "15m",
+        });
 
         res.status(200).json({
             success: true,
-            accessToken: newAccessToken
+            message: "New access token generated successfully",
+            accessToken: newAccessToken,
         });
     } catch (error) {
+        console.error("Refresh token error:", error);
         res.clearCookie("refreshToken");
         throw new ApiError(401, "Invalid or expired refresh token");
     }

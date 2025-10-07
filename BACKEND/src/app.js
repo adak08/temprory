@@ -12,6 +12,10 @@ import otpRoutes from "./routes/otp.routes.js";
 import notificationRoutes from './routes/notification.routes.js';
 import chatRoutes from "./routes/chat.routes.js";
 import userIssueRoutes from "./routes/user_issue.routes.js";
+import staffIssueRoutes from "./routes/staff_issue.routes.js";
+import adminIssueRoutes from "./routes/admin_issue.routes.js";  
+import uploadRouter from "./routes/upload.routes.js";
+
 
 // --- Utility Imports ---
 import { ApiError } from './utils/ApiError.js'; 
@@ -49,15 +53,19 @@ app.use(cors({
             return callback(new Error(msg), false);
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
+app.options(/.*/, cors()); // Preflight OPTIONS requests
 
 // Cookie Parser
 app.use(cookieParser());
 
 // Body Parsers
-app.use(express.json({ limit: "16kb" }));
-app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(express.json({ limit: "50mb" })); // Increased limit for large payloads
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // --- Serve frontend files and scripts ---
 app.use(express.static(projectRoot)); 
@@ -69,6 +77,9 @@ app.use((req, res, next) => {
 });
 
 // --- API Routes ---
+app.use("/api/upload", uploadRouter);
+app.use("/api/staff_issues", staffIssueRoutes);
+app.use("/api/admin_issues", adminIssueRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/admin", adminRoutes);

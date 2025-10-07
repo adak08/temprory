@@ -1,23 +1,28 @@
 import Admin from "../models/Admin.models.js";
 import bcrypt from "bcryptjs"; // ADD THIS IMPORT
 import jwt from "jsonwebtoken"; // ADD THIS IMPORT
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename); 
 
 export const adminLogin = async(req, res) => {
     try {
-        const { identifier, password } = req.body;
-        
-        console.log('[ADMIN LOGIN] Received:', { identifier, password: '***' });
+        const { adminId, password } = req.body;
 
-        if (!identifier || !password) {
+        console.log('[ADMIN LOGIN] Received:', { adminId, password: '***' });
+
+        if (!adminId || !password) {
             return res.status(400).json({ 
                 success: false,
-                message: "Please provide identifier and password" 
+                message: "Please provide adminId and password" 
             });
         }
 
         // Find admin by email or phone
         const admin = await Admin.findOne({
-            $or: [{ email: identifier }, { phone: identifier }],
+            $or: [{ email: adminId }, { phone: adminId }],
         });
         
         if (!admin) {
@@ -51,13 +56,6 @@ export const adminLogin = async(req, res) => {
             success: true,
             message: "Admin Login Successful",
             accessToken, // Direct accessToken (not nested in data)
-            admin: { // Direct admin object (not nested in data)
-                id: admin._id,
-                name: admin.name,
-                email: admin.email,
-                role: admin.role,
-                permissions: admin.permissions
-            }
         });
     } catch (err) {
         console.error("Admin Login Error:", err);

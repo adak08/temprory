@@ -25,7 +25,7 @@ const adminSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ["admin"],
+        enum: ["admin","superadmin"],
         default: "admin"
     },
     profileImage: {
@@ -80,10 +80,10 @@ const adminSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Index for faster queries
-adminSchema.index({ email: 1 });
-adminSchema.index({ phone: 1 });
-adminSchema.index({ isActive: 1 });
+// // Index for faster queries
+// adminSchema.index({ email: 1 });
+// adminSchema.index({ phone: 1 });
+// adminSchema.index({ isActive: 1 });
 
 // Method to check if admin has specific permission
 adminSchema.methods.hasPermission = function(permission) {
