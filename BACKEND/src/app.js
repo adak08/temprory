@@ -79,7 +79,7 @@ app.use((req, res, next) => {
 // --- API Routes ---
 app.use("/api/upload", uploadRouter);
 app.use("/api/staff_issues", staffIssueRoutes);
-app.use("/api/admin_issues", adminIssueRoutes);
+app.use("/api/admin/issues", adminIssueRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/admin", adminRoutes);
