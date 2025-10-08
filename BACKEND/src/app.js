@@ -78,11 +78,11 @@ app.use((req, res, next) => {
 
 // --- API Routes ---
 app.use("/api/upload", uploadRouter);
-app.use("/api/staff_issues", staffIssueRoutes);
-app.use("/api/admin/issues", adminIssueRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin/issues", adminIssueRoutes);
+app.use("/api/staff_issues", staffIssueRoutes);
 app.use("/api/otp", otpRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/chat", chatRoutes);
